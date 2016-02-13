@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include "RTDH_GL.h"
 
-
+//Initialize GLFW, make a window with the right size and initialize GLEW
 GLFWwindow* initGLFW(int width, int height){
 
 	//Initialize GLFW
@@ -41,5 +41,17 @@ GLFWwindow* initGLFW(int width, int height){
 	}
 	checkGLError(glGetError());
 	return window;
+}
+
+//Callback function that closes the window if escape is pressed.
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+		glfwSetWindowShouldClose(window, GL_TRUE);
+}
+
+//Allows you to resize the window. 
+void window_size_callback(GLFWwindow* window, int width, int height){
+	glViewport(0, 0, width, height);
 }
 #endif

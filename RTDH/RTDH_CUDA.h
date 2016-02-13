@@ -6,6 +6,7 @@
 #include <cuda_gl_interop.h>
 #include "helper_cuda.h"
 
+typedef float2 Complex;
 
 void findCUDAGLDevices(){
 	//Look for a CUDA device
@@ -18,5 +19,21 @@ void findCUDAGLDevices(){
 		fprintf(stderr, "Failed to find a CUDA device. Exiting... \n");
 		exit(EXIT_FAILURE);
 	}
+}
+
+void createVBOCUDA(GLuint *vbo, int element_components_no, struct cudaGraphicsResource **vbo_res, unsigned int vbo_res_flags, int width, int height){
+	// create buffer object
+	glGenBuffers(1, vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, *vbo);
+
+	// initialize buffer object
+	unsigned int size = width * height * element_components_no * sizeof(float);
+	glBufferData(GL_ARRAY_BUFFER, size, 0, GL_DYNAMIC_DRAW); //Later on use glBufferSubData!
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	// register this buffer object with CUDA
+	checkCudaErrors(cudaGraphicsGLRegisterBuffer(vbo_res, *vbo, vbo_res_flags));
+	checkGLError(glGetError());
 }
 #endif

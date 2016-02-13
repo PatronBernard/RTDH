@@ -1,10 +1,14 @@
-//This header contains various utility functions. 
+//This header contains various utility functions not relating to CUDA/GLFW/cuFFT
 
 #ifndef RTDH_UTILITY_H
 #define RTDH_UTILITY_H
 
 #include <stdio.h>
 #include <time.h>
+
+
+//Allows us to easily print an error to the logfile. 
+#define printError() fprintf(stderr, "%s: line %d: %s \n", __FILE__, __LINE__, std::strerror(errno));
 
 // Used for the first lines of the error log
 void printTime(FILE* filePtr){
@@ -25,6 +29,40 @@ struct reconParameters{
 	float lambda;	//Laser wavelength
 	float rec_dist;	//Reconstruction distance
 };
+
+//Reads a binary file containing 4-byte floats
+float* read_data(const char *inputfile){
+	//Associate inputfile with a stream via ifptr, open file as binary data.
+	FILE *ifPtr;
+	ifPtr = fopen(inputfile, "rb");
+
+	if (ifPtr == NULL){
+		fprintf(stderr, "read_data: %s", std::strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+	else{
+		//Determine file size
+		fseek(ifPtr, 0, SEEK_END);
+		int ifSize = ftell(ifPtr);
+		rewind(ifPtr);
+		//Initialize data pointer and allocate a sufficient amount of memory
+		float* DataPtr = (float*)malloc(ifSize);
+
+		if (DataPtr == NULL){
+			fprintf(stderr, "read_data: %s \n", std::strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+
+		//Read file.
+		else{
+			//Read binary data into a memoryblock of size ifSize, pointed to by Data
+			int Length = ifSize / (sizeof(float));
+			int Elements_Read = fread(DataPtr, 4, Length, ifPtr);
+		}
+		return DataPtr;
+	}
+	fclose(ifPtr);
+}
 
 //Reads parameters from a text file (each line contains a float and (optionally) a comment.
 void read_parameters(const char *inputfile, struct reconParameters *parameters){
