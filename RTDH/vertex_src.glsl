@@ -24,7 +24,7 @@ void main(void){
     //Map height to a color, will change into atan(b/a) to map phase to colour
     //ex_Color = hot(0.5*in_Position.z+0.5);
 	//Dirty solution to z-values that can exceed 1
-	gl_Position=vec4(in_Position.x,in_Position.y,0,1);
+	gl_Position=vec4(in_Position.x, in_Position.y,0,1);
 	//ex_Color=hot(in_Position.x);
 	ex_Color = hot(in_Complex.x);
 }

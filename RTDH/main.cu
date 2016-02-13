@@ -50,11 +50,11 @@ int main(){
 	//Read the recorded hologram from a file. This will be replaced by the CCD later on.
 	Complex* h_recorded_hologram = (Complex*)malloc(sizeof(Complex)*parameters.N*parameters.M);
 	if (h_recorded_hologram == NULL){ printError(); exit(EXIT_FAILURE); }
-	float* h_recorded_hologram_real = read_data("recorded_hologram.bin");
+	float* h_recorded_hologram_real = read_data("recorded_hologram_scaled.bin");
 
 	for (int i = 0; i < parameters.M*parameters.N; i++){
-		h_recorded_hologram[i].x = (float)i / (float) (parameters.M*parameters.N); // h_recorded_hologram_real[i];
-		h_recorded_hologram[i].y = (float)i / (float)(parameters.M*parameters.N);
+		h_recorded_hologram[i].x =  h_recorded_hologram_real[i];
+		h_recorded_hologram[i].y = 0.0;
 	}
 
 	//We'll use a vertex array object with two VBO's. The first will house the vertex positions, the second will 
@@ -117,6 +117,9 @@ int main(){
 	glEnableVertexAttribArray(0);
 	checkGLError(glGetError());
 
+
+	//This doesn't work, h_recorded_hologram is an array of structs with x- and y- fields, and glBufferData expects an array of the form 
+	// x0 y0 | x1 y1 | ... | xn yn
 	glBufferData(GL_ARRAY_BUFFER, parameters.N*parameters.M * 2 * sizeof(GLfloat), h_recorded_hologram, GL_DYNAMIC_DRAW);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
