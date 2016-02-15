@@ -1,6 +1,9 @@
 #version 150
 #define PI 3.14159265358979323846264338327950
 //Found on https://www.shadertoy.com/view/4dXXDX
+
+uniform mat4 Projection; 
+
 in vec2 in_Position;
 in float in_Magnitude;
 //We should add a vec2 that contains the real and imaginary parts. 
@@ -21,10 +24,6 @@ vec3 hot(float t)
 }
 
 void main(void){
-    //Map height to a color, will change into atan(b/a) to map phase to colour
-    //ex_Color = hot(0.5*in_Position.z+0.5);
-	//Dirty solution to z-values that can exceed 1
-	gl_Position=vec4(in_Position.x, in_Position.y,0,1);
-	//ex_Color=hot(in_Position.x);
-	ex_Color = hot(1.0); // hot(in_Magnitude);
+	gl_Position=Projection * vec4(in_Position.x, in_Position.y,0.0f,1.0f);
+	ex_Color = hot(in_Magnitude);
 }

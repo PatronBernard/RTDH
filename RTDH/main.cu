@@ -5,6 +5,10 @@
 #define GLEW_STATIC
 #include <GL\glew.h>
 
+//GLM
+#include <glm/glm.hpp>
+#include "glm/gtc/matrix_transform.hpp"
+
 //GLFW
 #include <GLFW\glfw3.h>
 
@@ -25,8 +29,10 @@ __global__ void simple_vbo_kernel(float4 *pos, const int width, const int height
 
 __global__ void cufftComplex2Float(float *vbo_dptr, Complex *z, const int width, const int height);
 
-void mainLoop(GLFWwindow* window, reconParameters parameters, cudaGraphicsResource *cuda_vbo_resource, Complex* d_recorded_hologram);
+void mainLoop(GLFWwindow* window, GLuint shaderprogram, GLuint projection_Handle, reconParameters parameters, cudaGraphicsResource *cuda_vbo_resource, Complex* d_recorded_hologram);
 
+#define PI	3.1415926535897932384626433832795028841971693993751058209749
+#define PI2 1.570796326794896619231321691639751442098584699687552910487
 
 //TODO: -fix everything, reorganize headers so it makes sense
 //		-perhaps generate a test hologram at a smaller size?
@@ -68,8 +74,7 @@ int main(){
 	checkCudaErrors(cudaMemcpy(d_recorded_hologram,h_recorded_hologram,sizeof(Complex)*parameters.N*parameters.M,cudaMemcpyHostToDevice));
 
 	//We'll use a vertex array object with two VBO's. The first will house the vertex positions, the second will 
-	//house their colours/complex value. We cannot put the positions and complex values in a single VBO because cuFFT requires
-	//a float2. 
+	//house the magnitude that will be calculated with a kernel. 
 	
 	GLuint vao;
 	GLuint vbo[2];
@@ -84,6 +89,7 @@ int main(){
 	glGenBuffers(2, vbo);
 	checkGLError(glGetError());
 
+	//First let's set up all vertices in the first vbo. 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 	checkGLError(glGetError());
 
@@ -93,7 +99,7 @@ int main(){
 	int k = 0;
 
 	
-	float *position = (float *) malloc(parameters.N*parameters.M * 2 * sizeof(float));
+	float *vertices = (float *) malloc(parameters.N*parameters.M * 2 * sizeof(float));
 	for (int i = 0; i < parameters.N; i++){
 		for (int j = 0; j < parameters.M; j++){
 			u = (float)i - 0.5f*(float)parameters.N;
@@ -101,14 +107,14 @@ int main(){
 			x = (u) / (0.5f*(float)parameters.N);
 			y = (v) / (0.5f*(float)parameters.M);
 
-			position[k] = x;
-			position[k + 1] = y;
+			vertices[k] = x;
+			vertices[k + 1] = y;
 			k += 2;
 		}
 	}
 	
 	//Load these vertex coordinates into the first vbo
-	glBufferData(GL_ARRAY_BUFFER, parameters.N*parameters.M * 2 * sizeof(GLfloat), position, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, parameters.N*parameters.M * 2 * sizeof(GLfloat), vertices, GL_DYNAMIC_DRAW);
 	checkGLError(glGetError());
 
 	glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,0,0);
@@ -121,10 +127,10 @@ int main(){
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
 	checkGLError(glGetError());
 
-	glVertexAttribPointer(0, 1, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, 0);
 	checkGLError(glGetError());
 
-	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
 	checkGLError(glGetError());
 
 	//IDEE: schrijf een kernel van cufftcomplex - > VBO
@@ -142,7 +148,7 @@ int main(){
 
 	//Compile vertex and fragment shaders
 
-	initShaders();
+	GLuint shaderprogram = initShaders();
 	checkGLError(glGetError());
 
 	
@@ -150,11 +156,13 @@ int main(){
 
 	//checkCudaErrors(cudaDeviceReset());
 
-	mainLoop(window, parameters, cuda_vbo_resource, d_recorded_hologram);
+	GLuint projection_Handle= glGetUniformLocation(shaderprogram, "Projection");
+
+	mainLoop(window, shaderprogram, projection_Handle, parameters, cuda_vbo_resource, d_recorded_hologram);
 	
 	glfwTerminate();
 
-	free(position);
+	free(vertices);
 	free(h_recorded_hologram);
 	checkCudaErrors(cudaFree(d_recorded_hologram));
 
@@ -166,30 +174,15 @@ int main(){
 	return 0;
 };
 
-__global__ void simple_vbo_kernel(float4 *pos, const int width, const int height){
-	unsigned int x = blockIdx.x*blockDim.x + threadIdx.x;
-	unsigned int y = blockIdx.y*blockDim.y + threadIdx.y;
-
-	// calculate uv coordinates
-	float u = (float)x / (float)width;
-	float v = (float)y / (float)height;
-	u = u*2.0f - 1.0f;
-	v = v*2.0f - 1.0f;
-
-	float w = 0.5f*sqrt(pow(u, 2.0f) + pow(v, 2.0f));
-
-	// write output vertex
-	pos[y*width + x] = make_float4(u, v, u, v);
-}
-
 __global__ void cufftComplex2Float(float* vbo_magnitude, Complex *z, const int width, const int height){
 	unsigned int i = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int j = blockIdx.y*blockDim.y + threadIdx.y;
-	//float magnitude = pow(z[j*width + i].x, (float)2) + pow(z[j*width + i].y, (float)2);
-	vbo_magnitude[j*width + i] = 1.0; // make_float1(sqrt(magnitude));
+	float magnitude = pow(z[j*height + i].x, (float)2) + pow(z[j*height + i].y, (float)2);
+	vbo_magnitude[j*height + i] = (PI2 + atanf(sqrt(0.1*magnitude))) / PI;
 };
 
-void mainLoop(GLFWwindow* window, reconParameters parameters, cudaGraphicsResource *cuda_vbo_resource, Complex* d_recorded_hologram){
+//Why write it as a function anyway? Too much arguments !
+void mainLoop(GLFWwindow* window, GLuint shaderprogram, GLuint projection_Handle, reconParameters parameters, cudaGraphicsResource *cuda_vbo_resource, Complex* d_recorded_hologram){
 	// Measure frametime
 	double frameTime = 0.0;
 	int fps = 1;
@@ -200,12 +193,11 @@ void mainLoop(GLFWwindow* window, reconParameters parameters, cudaGraphicsResour
 	while (!glfwWindowShouldClose(window))
 	{
 		glfwSetTime(0.0);
-		//float ratio = (float)parameters.N / (float)parameters.M;
+		float ratio = (float)parameters.N / (float)parameters.M;
 		// handle events
 
-		//Calculate position with CUDA
 		// map OpenGL buffer object for writing from CUDA
-		
+
 		float *dptr; //This will become a float2 as to be compatible with cuFFT
 		checkCudaErrors(cudaGraphicsMapResources(1, &cuda_vbo_resource, 0));
 		
@@ -218,11 +210,19 @@ void mainLoop(GLFWwindow* window, reconParameters parameters, cudaGraphicsResour
 		dim3 block(8, 8, 1);
 		dim3 grid((unsigned int)parameters.N / block.x, (unsigned int)parameters.M / block.y, 1);
 		cufftComplex2Float<<<grid, block >>>(dptr, d_recorded_hologram, parameters.N, parameters.M);
-		//checkCudaErrors(cudaGetLastError());
+		checkCudaErrors(cudaGetLastError());
 		
 		// unmap buffer object
 		checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_vbo_resource, 0));
 		
+		int w_width, w_height;
+		glfwGetWindowSize(window, &w_width, &w_height);
+		
+		//glm::mat4 Projection = glm::ortho(-(float)parameters.N / (float)w_width, (float)parameters.N / (float)w_width, -(float)parameters.M / (float)w_height, (float)parameters.M / (float)w_height);
+		glm::mat4 Projection = glm::ortho(-1.0,1.0,-1.0,1.0);
+
+		glUniformMatrix4fv(projection_Handle, 1, GL_FALSE, &Projection[0][0]);
+
 
 		glDrawArrays(GL_POINTS, 0, parameters.N*parameters.M);
 

@@ -18,6 +18,8 @@ char* glGetErrorString(GLenum glError);
 //Wrapper function to compile a vertex shader
 GLuint compileVertexShader();
 
+GLuint initShaders();
+
 //
 void assign_vertex_attribute_data(GLuint vbo_pos){
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_pos); //Bind buffer so we can do stuff with it
@@ -69,7 +71,7 @@ char* glGetErrorString(GLenum glError){
 }
 
 //Read and compile the shaders. 
-void initShaders(){
+GLuint initShaders(){
 	char* vertex_src = read_txt("vertex_src.glsl");
 	char* fragment_src = read_txt("fragment_src.glsl");
 	GLint shader_ok;
@@ -108,10 +110,10 @@ void initShaders(){
 	glAttachShader(shaderprogram, fragment_shader);
 
 	glBindAttribLocation(shaderprogram, 0, "in_Position");
-	glBindAttribLocation(shaderprogram, 1, "in_Complex");
-	//glBindAttribLocation(shaderprogram, 1, "in_ComplexValue");
+	glBindAttribLocation(shaderprogram, 1, "in_Magnitude");
 
 	glLinkProgram(shaderprogram);
 	glUseProgram(shaderprogram);
+	return shaderprogram;
 }
 #endif
