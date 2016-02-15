@@ -21,8 +21,12 @@
 #include "RTDH_GLFW.h"
 #include "RTDH_CUDA.h"
 
-void mainLoop(GLFWwindow* window, reconParameters parameters, cudaGraphicsResource *cuda_vbo_resource);
 __global__ void simple_vbo_kernel(float4 *pos, const int width, const int height);
+
+__global__ void cufftComplex2Float(float *vbo_dptr, Complex *z, const int width, const int height);
+
+void mainLoop(GLFWwindow* window, reconParameters parameters, cudaGraphicsResource *cuda_vbo_resource, Complex* d_recorded_hologram);
+
 
 //TODO: -fix everything, reorganize headers so it makes sense
 //		-perhaps generate a test hologram at a smaller size?
@@ -56,6 +60,12 @@ int main(){
 		h_recorded_hologram[i].x =  h_recorded_hologram_real[i];
 		h_recorded_hologram[i].y = 0.0;
 	}
+	
+	//Copy the hologram to the GPU
+	Complex* d_recorded_hologram;
+	checkCudaErrors(cudaMalloc((void**)&d_recorded_hologram, sizeof(Complex)*parameters.N*parameters.M));
+
+	checkCudaErrors(cudaMemcpy(d_recorded_hologram,h_recorded_hologram,sizeof(Complex)*parameters.N*parameters.M,cudaMemcpyHostToDevice));
 
 	//We'll use a vertex array object with two VBO's. The first will house the vertex positions, the second will 
 	//house their colours/complex value. We cannot put the positions and complex values in a single VBO because cuFFT requires
@@ -107,20 +117,22 @@ int main(){
 	glEnableVertexAttribArray(0);
 	checkGLError(glGetError());
 
-	//Bind the second VBO that will contain the complex data, register it as a CUDA resource so we can modify it.
+	//Bind the second VBO that will contain the magnitude of each complex number. 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
 	checkGLError(glGetError());
 
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribPointer(0, 1, GL_FLOAT, GL_FALSE, 0, 0);
 	checkGLError(glGetError());
 
 	glEnableVertexAttribArray(0);
 	checkGLError(glGetError());
 
-
+	//IDEE: schrijf een kernel van cufftcomplex - > VBO
 	//This doesn't work, h_recorded_hologram is an array of structs with x- and y- fields, and glBufferData expects an array of the form 
 	// x0 y0 | x1 y1 | ... | xn yn
-	glBufferData(GL_ARRAY_BUFFER, parameters.N*parameters.M * 2 * sizeof(GLfloat), h_recorded_hologram, GL_DYNAMIC_DRAW);
+
+	//This is the VBO that the complex magnitudes will be written to for visualization.
+	glBufferData(GL_ARRAY_BUFFER, parameters.N*parameters.M * 1 * sizeof(GLfloat), 0, GL_DYNAMIC_DRAW);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	checkGLError(glGetError());
@@ -136,12 +148,17 @@ int main(){
 	
 	//=========================MAIN LOOP==========================
 
-	mainLoop(window, parameters, cuda_vbo_resource);
+	//checkCudaErrors(cudaDeviceReset());
+
+	mainLoop(window, parameters, cuda_vbo_resource, d_recorded_hologram);
 	
 	glfwTerminate();
 
 	free(position);
 	free(h_recorded_hologram);
+	checkCudaErrors(cudaFree(d_recorded_hologram));
+
+	checkCudaErrors(cudaDeviceReset());
 
 	fprintf(stderr, "No errors (that I'm aware of)! \n");
 	fclose(logfile);
@@ -149,7 +166,30 @@ int main(){
 	return 0;
 };
 
-void mainLoop(GLFWwindow* window,reconParameters parameters,cudaGraphicsResource *cuda_vbo_resource){
+__global__ void simple_vbo_kernel(float4 *pos, const int width, const int height){
+	unsigned int x = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int y = blockIdx.y*blockDim.y + threadIdx.y;
+
+	// calculate uv coordinates
+	float u = (float)x / (float)width;
+	float v = (float)y / (float)height;
+	u = u*2.0f - 1.0f;
+	v = v*2.0f - 1.0f;
+
+	float w = 0.5f*sqrt(pow(u, 2.0f) + pow(v, 2.0f));
+
+	// write output vertex
+	pos[y*width + x] = make_float4(u, v, u, v);
+}
+
+__global__ void cufftComplex2Float(float* vbo_magnitude, Complex *z, const int width, const int height){
+	unsigned int i = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int j = blockIdx.y*blockDim.y + threadIdx.y;
+	//float magnitude = pow(z[j*width + i].x, (float)2) + pow(z[j*width + i].y, (float)2);
+	vbo_magnitude[j*width + i] = 1.0; // make_float1(sqrt(magnitude));
+};
+
+void mainLoop(GLFWwindow* window, reconParameters parameters, cudaGraphicsResource *cuda_vbo_resource, Complex* d_recorded_hologram){
 	// Measure frametime
 	double frameTime = 0.0;
 	int fps = 1;
@@ -160,26 +200,29 @@ void mainLoop(GLFWwindow* window,reconParameters parameters,cudaGraphicsResource
 	while (!glfwWindowShouldClose(window))
 	{
 		glfwSetTime(0.0);
-		float ratio = (float) parameters.N / (float) parameters.M;
+		//float ratio = (float)parameters.N / (float)parameters.M;
 		// handle events
-		/*
+
 		//Calculate position with CUDA
 		// map OpenGL buffer object for writing from CUDA
-		float4 *dptr; //This will become a float2 as to be compatible with cuFFT
+		
+		float *dptr; //This will become a float2 as to be compatible with cuFFT
 		checkCudaErrors(cudaGraphicsMapResources(1, &cuda_vbo_resource, 0));
+		
 		size_t num_bytes;
 		checkCudaErrors(cudaGraphicsResourceGetMappedPointer((void **)&dptr, &num_bytes,
 			cuda_vbo_resource));
+		
 		//Run kernel, this will become a simple kernel and cufftExecC2C call
 		//First thing to do: get an external stream to 
 		dim3 block(8, 8, 1);
-		dim3 grid((unsigned int) parameters.N / block.x, (unsigned int) parameters.N / block.y, 1);
-		simple_vbo_kernel<<<grid,block>>>(dptr,parameters.N,parameters.M);
+		dim3 grid((unsigned int)parameters.N / block.x, (unsigned int)parameters.M / block.y, 1);
+		cufftComplex2Float<<<grid, block >>>(dptr, d_recorded_hologram, parameters.N, parameters.M);
 		//checkCudaErrors(cudaGetLastError());
-
+		
 		// unmap buffer object
 		checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_vbo_resource, 0));
-		*/
+		
 
 		glDrawArrays(GL_POINTS, 0, parameters.N*parameters.M);
 
@@ -201,20 +244,3 @@ void mainLoop(GLFWwindow* window,reconParameters parameters,cudaGraphicsResource
 		}
 	}
 };
-
-__global__ void simple_vbo_kernel(float4 *pos, const int width, const int height)
-{
-	unsigned int x = blockIdx.x*blockDim.x + threadIdx.x;
-	unsigned int y = blockIdx.y*blockDim.y + threadIdx.y;
-
-	// calculate uv coordinates
-	float u = (float)x / (float)width;
-	float v = (float)y / (float)height;
-	u = u*2.0f - 1.0f;
-	v = v*2.0f - 1.0f;
-
-	float w = 0.5f*sqrt(pow(u, 2.0f) + pow(v, 2.0f));
-
-	// write output vertex
-	pos[y*width + x] = make_float4(u, v, u, v);
-}

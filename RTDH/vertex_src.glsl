@@ -1,8 +1,8 @@
 #version 150
 #define PI 3.14159265358979323846264338327950
 //Found on https://www.shadertoy.com/view/4dXXDX
-in  vec2 in_Position;
-in vec2 in_Complex;
+in vec2 in_Position;
+in float in_Magnitude;
 //We should add a vec2 that contains the real and imaginary parts. 
 out vec3 ex_Color;
 
@@ -26,5 +26,5 @@ void main(void){
 	//Dirty solution to z-values that can exceed 1
 	gl_Position=vec4(in_Position.x, in_Position.y,0,1);
 	//ex_Color=hot(in_Position.x);
-	ex_Color = hot(in_Complex.x);
+	ex_Color = hot(1.0); // hot(in_Magnitude);
 }
