@@ -157,6 +157,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <CudaCompile Include="main.cu" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="cuFFT_helper_functions.h" />
     <ClInclude Include="helper_cuda.h" />
     <ClInclude Include="helper_string.h" />
     <ClInclude Include="RTDH_CUDA.h" />

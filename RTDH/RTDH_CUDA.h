@@ -5,8 +5,11 @@
 #include "device_launch_parameters.h"
 #include <cuda_gl_interop.h>
 #include "helper_cuda.h"
+#include "cuFFT_helper_functions.h"
 
 typedef float2 Complex;
+
+#define printCufftError()	fprintf(stderr, "%s: line %d: %s \n", __FILE__, __LINE__, cufftStrError(result));
 
 void findCUDAGLDevices(){
 	//Look for a CUDA device

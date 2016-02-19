@@ -6,6 +6,9 @@
 #include <stdio.h>
 #include <time.h>
 
+typedef float2 Complex;
+
+#define PI	3.1415926535897932384626433832795028841971693993751058209749
 
 //Allows us to easily print an error to the logfile. 
 #define printError() fprintf(stderr, "%s: line %d: %s \n", __FILE__, __LINE__, std::strerror(errno));
@@ -165,4 +168,29 @@ char* read_txt(const char* filename){
 	}
 }
 
+void construct_chirp(Complex* h_chirp, int M, int N, float lambda, float rec_dist, float pixel_x, float pixel_y){
+	if (h_chirp != NULL){
+		int k, l; float ch_exp, x, y;
+
+		float a = PI / (rec_dist*lambda);
+
+		for (int i = 0; i < M*N; i++){
+			//Row and column indices corresponding with linear index i. 
+			k = (int)std::floor(float(i / N));
+			l = (i % M);
+
+			x = (float)l - (float)(N / 2);
+			y = (float)-k + (float)(M / 2);
+
+			ch_exp = (float)std::pow(x*pixel_x, 2) + (float)std::pow(y*pixel_y, 2);
+
+			h_chirp[i].x = std::cos(a*ch_exp);
+			h_chirp[i].y = std::sin(a*ch_exp);
+		}
+	}
+	else{
+		fprintf(stderr, "construct_chirp: h_chirp is NULL");
+		exit(EXIT_FAILURE);
+	}
+}
 #endif

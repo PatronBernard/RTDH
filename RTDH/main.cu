@@ -27,9 +27,18 @@
 
 __global__ void simple_vbo_kernel(float4 *pos, const int width, const int height);
 
+__global__ void matrixMulComplexPointw(Complex* A, Complex* B, Complex* C, int M, int N);
+
 __global__ void cufftComplex2Float(float *vbo_dptr, Complex *z, const int width, const int height);
 
-void mainLoop(GLFWwindow* window, GLuint shaderprogram, GLuint projection_Handle, reconParameters parameters, cudaGraphicsResource *cuda_vbo_resource, Complex* d_recorded_hologram);
+void mainLoop(	GLFWwindow* window, 
+				GLuint shaderprogram, 
+				GLuint projection_Handle, 
+				reconParameters parameters, 
+				cudaGraphicsResource *cuda_vbo_resource, 
+				Complex* d_recorded_hologram, 
+				Complex* d_chirp,
+				Complex* d_propagated);
 
 #define PI	3.1415926535897932384626433832795028841971693993751058209749
 #define PI2 1.570796326794896619231321691639751442098584699687552910487
@@ -57,9 +66,22 @@ int main(){
 	//Search for CUDA devices and pick the best-suited one. 
 	findCUDAGLDevices();
 
+	//Allocate and set up the chirp-function, copy it to the GPU memory.
+	Complex* h_chirp = (Complex*)malloc(sizeof(Complex)*parameters.N*parameters.M);
+	if (h_chirp == NULL){ printError(); exit(EXIT_FAILURE); }
+
+	construct_chirp(h_chirp, parameters.M, parameters.N, parameters.lambda, parameters.rec_dist, parameters.pixel_x, parameters.pixel_y);
+
+	Complex* d_chirp;
+	checkCudaErrors(cudaMalloc((void**)&d_chirp, sizeof(Complex)*parameters.M*parameters.N));
+
+	checkCudaErrors(cudaMemcpy(d_chirp, h_chirp, sizeof(Complex)*parameters.M*parameters.N, cudaMemcpyHostToDevice));
+
+	
 	//Read the recorded hologram from a file. This will be replaced by the CCD later on.
 	Complex* h_recorded_hologram = (Complex*)malloc(sizeof(Complex)*parameters.N*parameters.M);
 	if (h_recorded_hologram == NULL){ printError(); exit(EXIT_FAILURE); }
+
 	float* h_recorded_hologram_real = read_data("recorded_hologram_scaled.bin");
 
 	for (int i = 0; i < parameters.M*parameters.N; i++){
@@ -72,6 +94,11 @@ int main(){
 	checkCudaErrors(cudaMalloc((void**)&d_recorded_hologram, sizeof(Complex)*parameters.N*parameters.M));
 
 	checkCudaErrors(cudaMemcpy(d_recorded_hologram,h_recorded_hologram,sizeof(Complex)*parameters.N*parameters.M,cudaMemcpyHostToDevice));
+
+
+	Complex* d_propagated;
+	checkCudaErrors(cudaMalloc((void**)&d_propagated, sizeof(Complex)*parameters.M*parameters.N));
+
 
 	//We'll use a vertex array object with two VBO's. The first will house the vertex positions, the second will 
 	//house the magnitude that will be calculated with a kernel. 
@@ -151,6 +178,15 @@ int main(){
 	GLuint shaderprogram = initShaders();
 	checkGLError(glGetError());
 
+	// Set up cuFFT stuff
+	cufftComplex* d_reconstructed;
+	cudaMalloc((void**)&d_reconstructed, sizeof(cufftComplex)*parameters.M*parameters.N);
+
+	//Set up plan
+	cufftResult result = CUFFT_SUCCESS;
+	cufftHandle plan;
+	result = cufftPlan2d(&plan, parameters.N, parameters.M, CUFFT_C2C);
+	if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
 	
 	//=========================MAIN LOOP==========================
 
@@ -158,7 +194,7 @@ int main(){
 
 	GLuint projection_Handle= glGetUniformLocation(shaderprogram, "Projection");
 
-	mainLoop(window, shaderprogram, projection_Handle, parameters, cuda_vbo_resource, d_recorded_hologram);
+	mainLoop(window, shaderprogram, projection_Handle, parameters, cuda_vbo_resource, d_recorded_hologram, d_chirp,d_propagated);
 	
 	glfwTerminate();
 
@@ -178,11 +214,28 @@ __global__ void cufftComplex2Float(float* vbo_magnitude, Complex *z, const int w
 	unsigned int i = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int j = blockIdx.y*blockDim.y + threadIdx.y;
 	float magnitude = pow(z[j*height + i].x, (float)2) + pow(z[j*height + i].y, (float)2);
-	vbo_magnitude[j*height + i] = (PI2 + atanf(sqrt(0.1*magnitude))) / PI;
+	vbo_magnitude[j*height + i] = (PI2 + atanf(sqrt(0.01*magnitude))) / PI;
 };
 
+__global__ void matrixMulComplexPointw(Complex* A, Complex* B, Complex* C, int M, int N){
+	int i = blockDim.x*blockIdx.x + threadIdx.x;
+
+	if (i < M*N){
+		C[i].x = A[i].x*B[i].x;
+		C[i].y = A[i].y*B[i].x;
+	}
+}
+
 //Why write it as a function anyway? Too much arguments !
-void mainLoop(GLFWwindow* window, GLuint shaderprogram, GLuint projection_Handle, reconParameters parameters, cudaGraphicsResource *cuda_vbo_resource, Complex* d_recorded_hologram){
+void mainLoop(	GLFWwindow* window, 
+				GLuint shaderprogram, 
+				GLuint projection_Handle, 
+				reconParameters parameters, 
+				cudaGraphicsResource *cuda_vbo_resource, 
+				Complex* d_recorded_hologram, 
+				Complex* d_chirp,
+				Complex* d_propagated){
+
 	// Measure frametime
 	double frameTime = 0.0;
 	int fps = 1;
@@ -209,7 +262,15 @@ void mainLoop(GLFWwindow* window, GLuint shaderprogram, GLuint projection_Handle
 		//First thing to do: get an external stream to 
 		dim3 block(8, 8, 1);
 		dim3 grid((unsigned int)parameters.N / block.x, (unsigned int)parameters.M / block.y, 1);
-		cufftComplex2Float<<<grid, block >>>(dptr, d_recorded_hologram, parameters.N, parameters.M);
+		
+		matrixMulComplexPointw <<<grid, block >>>(d_chirp, d_recorded_hologram, d_propagated, parameters.M, parameters.N);
+
+		/*
+		result = cufftExecC2C(plan, (cufftComplex*)d_propagated, d_reconstructed, CUFFT_FORWARD);
+		if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
+		*/
+
+		cufftComplex2Float <<<grid, block >>>(dptr, d_propagated, parameters.N, parameters.M);
 		checkCudaErrors(cudaGetLastError());
 		
 		// unmap buffer object
