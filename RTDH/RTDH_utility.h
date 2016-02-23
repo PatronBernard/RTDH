@@ -173,7 +173,19 @@ void construct_chirp(Complex* h_chirp, int M, int N, float lambda, float rec_dis
 		int k, l; float ch_exp, x, y;
 
 		float a = PI / (rec_dist*lambda);
+		
+			for (int i = 0; i < M; i++){
+				for (int j = 0; j < N; j++){
+				x = (float)j - (float)(N / 2.0);
+				y = (float)i - (float)(M / 2.0);
+				ch_exp = (float)std::pow(x*pixel_x, 2) + (float)std::pow(y*pixel_y, 2);
+				h_chirp[i*N + j].x = std::cos(a*ch_exp);
+				h_chirp[i*N + j].y = std::sin(a*ch_exp);
 
+			}
+		}
+
+		/*
 		for (int i = 0; i < M*N; i++){
 			//Row and column indices corresponding with linear index i. 
 			k = (int)std::floor(float(i / N));
@@ -187,6 +199,7 @@ void construct_chirp(Complex* h_chirp, int M, int N, float lambda, float rec_dis
 			h_chirp[i].x = std::cos(a*ch_exp);
 			h_chirp[i].y = std::sin(a*ch_exp);
 		}
+		*/
 	}
 	else{
 		fprintf(stderr, "construct_chirp: h_chirp is NULL");

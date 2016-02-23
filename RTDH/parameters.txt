@@ -1,6 +1,6 @@
-2054 //Vertical image size
-2452 //Horizontal image size
-3.450000000000000e-06 	//Horizontal pixel size
-3.450000000000000e-06 	//Vertical pixel size
+514 // 2054 //Vertical image size
+613 // 2452 //Horizontal image size
+8.625e-06// 3.450000000000000e-06 	//Horizontal pixel size
+8.625e-06// 3.450000000000000e-06 	//Vertical pixel size
 6.328000000000000e-07 	//Wavelength
 0.400			//Reconstruction distance

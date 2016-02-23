@@ -25,11 +25,12 @@
 #include "RTDH_GLFW.h"
 #include "RTDH_CUDA.h"
 
-__global__ void simple_vbo_kernel(float4 *pos, const int width, const int height);
-
 __global__ void matrixMulComplexPointw(Complex* A, Complex* B, Complex* C, int M, int N);
 
-__global__ void cufftComplex2Float(float *vbo_dptr, Complex *z, const int width, const int height);
+__global__ void cufftComplex2MagnitudeF(float *vbo_dptr, Complex *z, const int M, const int N);
+
+__global__ void checkerBoard(Complex* A,const int M,const int N);
+
 
 void mainLoop(	GLFWwindow* window, 
 				GLuint shaderprogram, 
@@ -38,7 +39,9 @@ void mainLoop(	GLFWwindow* window,
 				cudaGraphicsResource *cuda_vbo_resource, 
 				Complex* d_recorded_hologram, 
 				Complex* d_chirp,
-				Complex* d_propagated);
+				Complex* d_propagated,
+				cufftHandle plan,
+				cufftResult result);
 
 #define PI	3.1415926535897932384626433832795028841971693993751058209749
 #define PI2 1.570796326794896619231321691639751442098584699687552910487
@@ -70,19 +73,25 @@ int main(){
 	Complex* h_chirp = (Complex*)malloc(sizeof(Complex)*parameters.N*parameters.M);
 	if (h_chirp == NULL){ printError(); exit(EXIT_FAILURE); }
 
-	construct_chirp(h_chirp, parameters.M, parameters.N, parameters.lambda, parameters.rec_dist, parameters.pixel_x, parameters.pixel_y);
+	construct_chirp(h_chirp, parameters.M, parameters.N, parameters.lambda, parameters.rec_dist, parameters.pixel_y, parameters.pixel_x);
 
 	Complex* d_chirp;
 	checkCudaErrors(cudaMalloc((void**)&d_chirp, sizeof(Complex)*parameters.M*parameters.N));
 
 	checkCudaErrors(cudaMemcpy(d_chirp, h_chirp, sizeof(Complex)*parameters.M*parameters.N, cudaMemcpyHostToDevice));
 
-	
+	//Set up the grid
+	dim3 block(8, 8, 1);
+	dim3 grid((unsigned int)parameters.M / block.x, (unsigned int)parameters.N / block.y, 1);
+
+	checkerBoard << <grid, block >> >(d_chirp, parameters.M, parameters.N);
+	checkCudaErrors(cudaGetLastError());
+
 	//Read the recorded hologram from a file. This will be replaced by the CCD later on.
 	Complex* h_recorded_hologram = (Complex*)malloc(sizeof(Complex)*parameters.N*parameters.M);
 	if (h_recorded_hologram == NULL){ printError(); exit(EXIT_FAILURE); }
 
-	float* h_recorded_hologram_real = read_data("recorded_hologram_scaled.bin");
+	float* h_recorded_hologram_real = read_data("recorded_hologram_small.bin");
 
 	for (int i = 0; i < parameters.M*parameters.N; i++){
 		h_recorded_hologram[i].x =  h_recorded_hologram_real[i];
@@ -126,11 +135,12 @@ int main(){
 	int k = 0;
 
 	
-	float *vertices = (float *) malloc(parameters.N*parameters.M * 2 * sizeof(float));
-	for (int i = 0; i < parameters.N; i++){
-		for (int j = 0; j < parameters.M; j++){
-			u = (float)i - 0.5f*(float)parameters.N;
-			v = (float)j - 0.5f*(float)parameters.M;
+	float *vertices = (float *) malloc(parameters.M*parameters.N * 2 * sizeof(float));
+	
+	for (int i = 0; i < parameters.M; i++){
+		for (int j = 0; j < parameters.N; j++){
+			u = (float)j - 0.5f*(float)parameters.N;
+			v = (float)i - 0.5f*(float)parameters.M;
 			x = (u) / (0.5f*(float)parameters.N);
 			y = (v) / (0.5f*(float)parameters.M);
 
@@ -185,7 +195,7 @@ int main(){
 	//Set up plan
 	cufftResult result = CUFFT_SUCCESS;
 	cufftHandle plan;
-	result = cufftPlan2d(&plan, parameters.N, parameters.M, CUFFT_C2C);
+	result = cufftPlan2d(&plan, parameters.M, parameters.N, CUFFT_C2C);
 	if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
 	
 	//=========================MAIN LOOP==========================
@@ -194,13 +204,27 @@ int main(){
 
 	GLuint projection_Handle= glGetUniformLocation(shaderprogram, "Projection");
 
-	mainLoop(window, shaderprogram, projection_Handle, parameters, cuda_vbo_resource, d_recorded_hologram, d_chirp,d_propagated);
+	mainLoop(	window, 
+				shaderprogram, 
+				projection_Handle, 
+				parameters, 
+				cuda_vbo_resource, 
+				d_recorded_hologram, 
+				d_chirp,
+				d_propagated, 
+				plan,
+				result);
 	
 	glfwTerminate();
 
 	free(vertices);
 	free(h_recorded_hologram);
-	checkCudaErrors(cudaFree(d_recorded_hologram));
+	free(h_chirp);
+
+	//checkCudaErrors(cudaFree(d_recorded_hologram));
+	//checkCudaErrors(cudaFree(d_chirp));
+	//checkCudaErrors(cudaFree(d_propagated));
+
 
 	checkCudaErrors(cudaDeviceReset());
 
@@ -210,11 +234,15 @@ int main(){
 	return 0;
 };
 
-__global__ void cufftComplex2Float(float* vbo_magnitude, Complex *z, const int width, const int height){
+__global__ void cufftComplex2MagnitudeF(float* vbo_magnitude, Complex *z, const int M, const int N){
 	unsigned int i = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int j = blockIdx.y*blockDim.y + threadIdx.y;
-	float magnitude = pow(z[j*height + i].x, (float)2) + pow(z[j*height + i].y, (float)2);
-	vbo_magnitude[j*height + i] = (PI2 + atanf(sqrt(0.01*magnitude))) / PI;
+	if (i < M && j < N){
+	float magnitude = sqrt(pow(z[j*N + i].x, (float)2) + pow(z[j*N + i].y, (float)2));
+	//vbo_magnitude[j*height + i] = (PI2 + atanf(sqrt(magnitude))) / PI;
+	vbo_magnitude[i*N + j] = z[i*N + j].x; //log(1.0 + magnitude/65523.0);
+	//vbo_magnitude[j*height + i] = log(1.0 + magnitude/sqrt((float)width*(float)height)); //This is a constant so we might want to calculate this beforehand. 
+	}
 };
 
 __global__ void matrixMulComplexPointw(Complex* A, Complex* B, Complex* C, int M, int N){
@@ -226,7 +254,16 @@ __global__ void matrixMulComplexPointw(Complex* A, Complex* B, Complex* C, int M
 	}
 }
 
-//Why write it as a function anyway? Too much arguments !
+__global__ void checkerBoard(Complex* A, int M, int N){
+	int i = blockIdx.x*blockDim.x + threadIdx.x;
+	int j = blockIdx.y*blockDim.y + threadIdx.y;
+	if (i < M && j < N){
+		A[i*N + j].x =  A[i*N+j].x*(float)((i + j) % 2);
+		A[i*N + j].y =  A[i*N+j].y*(float)((i + j) % 2);
+	}
+}
+
+
 void mainLoop(	GLFWwindow* window, 
 				GLuint shaderprogram, 
 				GLuint projection_Handle, 
@@ -234,7 +271,9 @@ void mainLoop(	GLFWwindow* window,
 				cudaGraphicsResource *cuda_vbo_resource, 
 				Complex* d_recorded_hologram, 
 				Complex* d_chirp,
-				Complex* d_propagated){
+				Complex* d_propagated,
+				cufftHandle plan,
+				cufftResult result){
 
 	// Measure frametime
 	double frameTime = 0.0;
@@ -245,32 +284,27 @@ void mainLoop(	GLFWwindow* window,
 
 	while (!glfwWindowShouldClose(window))
 	{
+		//Start measuring frame time
 		glfwSetTime(0.0);
 		float ratio = (float)parameters.N / (float)parameters.M;
-		// handle events
-
-		// map OpenGL buffer object for writing from CUDA
-
-		float *dptr; //This will become a float2 as to be compatible with cuFFT
-		checkCudaErrors(cudaGraphicsMapResources(1, &cuda_vbo_resource, 0));
 		
-		size_t num_bytes;
-		checkCudaErrors(cudaGraphicsResourceGetMappedPointer((void **)&dptr, &num_bytes,
-			cuda_vbo_resource));
-		
-		//Run kernel, this will become a simple kernel and cufftExecC2C call
-		//First thing to do: get an external stream to 
-		dim3 block(8, 8, 1);
-		dim3 grid((unsigned int)parameters.N / block.x, (unsigned int)parameters.M / block.y, 1);
+		//Set up the grid
+		dim3 block(16, 16, 1);
+		dim3 grid((unsigned int)parameters.M / block.x, (unsigned int)parameters.N / block.y, 1);
 		
 		matrixMulComplexPointw <<<grid, block >>>(d_chirp, d_recorded_hologram, d_propagated, parameters.M, parameters.N);
+		checkCudaErrors(cudaGetLastError());
 
-		/*
-		result = cufftExecC2C(plan, (cufftComplex*)d_propagated, d_reconstructed, CUFFT_FORWARD);
-		if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
-		*/
+		//result = cufftExecC2C(plan,d_chirp, d_propagated, CUFFT_FORWARD);
+		//if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
+		
+		float *dptr; //This is the pointer that we'll write the result to for display in OpenGL.
+		checkCudaErrors(cudaGraphicsMapResources(1, &cuda_vbo_resource, 0));
 
-		cufftComplex2Float <<<grid, block >>>(dptr, d_propagated, parameters.N, parameters.M);
+		size_t num_bytes;
+		checkCudaErrors(cudaGraphicsResourceGetMappedPointer((void **)&dptr, &num_bytes, cuda_vbo_resource));
+
+		cufftComplex2MagnitudeF <<<grid, block >>>(dptr, d_chirp, parameters.M, parameters.N);
 		checkCudaErrors(cudaGetLastError());
 		
 		// unmap buffer object
