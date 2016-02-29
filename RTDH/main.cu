@@ -27,7 +27,7 @@
 
 __global__ void matrixMulComplexPointw(Complex* A, Complex* B, Complex* C, int M, int N);
 
-__global__ void cufftComplex2MagnitudeF(float *vbo_dptr, Complex *z, const int M, const int N);
+__global__ void cufftComplex2MagnitudeF(float *vbo_dptr, Complex *z, const int M, const int N, Complex* d_isNan);
 
 __global__ void checkerBoard(Complex* A,const int M,const int N);
 
@@ -81,16 +81,19 @@ int main(){
 	checkCudaErrors(cudaMemcpy(d_chirp, h_chirp, sizeof(Complex)*parameters.M*parameters.N, cudaMemcpyHostToDevice));
 
 	//Set up the grid
-	dim3 block(8, 8, 1);
-	dim3 grid((unsigned int)parameters.M / block.x, (unsigned int)parameters.N / block.y, 1);
+	dim3 block(16, 16, 1);
+	dim3 grid((unsigned int)parameters.M / block.x+1, (unsigned int)parameters.N / block.y+1, 1);
 
 	checkerBoard << <grid, block >> >(d_chirp, parameters.M, parameters.N);
 	checkCudaErrors(cudaGetLastError());
 
 	//Read the recorded hologram from a file. This will be replaced by the CCD later on.
-	Complex* h_recorded_hologram = (Complex*)malloc(sizeof(Complex)*parameters.N*parameters.M);
+	Complex* h_recorded_hologram = (Complex*)malloc(sizeof(Complex)*parameters.M*parameters.N);
 	if (h_recorded_hologram == NULL){ printError(); exit(EXIT_FAILURE); }
 
+
+
+	//The binary must be in single-precision row-major order !!!
 	float* h_recorded_hologram_real = read_data("recorded_hologram_small.bin");
 
 	for (int i = 0; i < parameters.M*parameters.N; i++){
@@ -100,9 +103,9 @@ int main(){
 	
 	//Copy the hologram to the GPU
 	Complex* d_recorded_hologram;
-	checkCudaErrors(cudaMalloc((void**)&d_recorded_hologram, sizeof(Complex)*parameters.N*parameters.M));
+	checkCudaErrors(cudaMalloc((void**)&d_recorded_hologram, sizeof(Complex)*parameters.M*parameters.N));
 
-	checkCudaErrors(cudaMemcpy(d_recorded_hologram,h_recorded_hologram,sizeof(Complex)*parameters.N*parameters.M,cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_recorded_hologram,h_recorded_hologram,sizeof(Complex)*parameters.M*parameters.N,cudaMemcpyHostToDevice));
 
 
 	Complex* d_propagated;
@@ -175,7 +178,7 @@ int main(){
 	// x0 y0 | x1 y1 | ... | xn yn
 
 	//This is the VBO that the complex magnitudes will be written to for visualization.
-	glBufferData(GL_ARRAY_BUFFER, parameters.N*parameters.M * 1 * sizeof(GLfloat), 0, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, parameters.M*parameters.N * 1 * sizeof(GLfloat), 0, GL_DYNAMIC_DRAW);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	checkGLError(glGetError());
@@ -200,8 +203,6 @@ int main(){
 	
 	//=========================MAIN LOOP==========================
 
-	//checkCudaErrors(cudaDeviceReset());
-
 	GLuint projection_Handle= glGetUniformLocation(shaderprogram, "Projection");
 
 	mainLoop(	window, 
@@ -214,43 +215,61 @@ int main(){
 				d_propagated, 
 				plan,
 				result);
+
+	//Export the last reconstructed frame. 
+	Complex* h_reconstructed=(Complex*) malloc(sizeof(Complex)*parameters.M*parameters.N);
+	checkCudaErrors(cudaMemcpy(h_reconstructed, d_propagated, sizeof(Complex)*parameters.M*parameters.N, cudaMemcpyDeviceToHost));
+
+	export_complex_data("reconstructed_hologram.bin", h_reconstructed, parameters.M*parameters.N);
 	
-	glfwTerminate();
+
+	//Cleanup
+
+	
+	checkCudaErrors(cudaFree(d_recorded_hologram));
+	checkCudaErrors(cudaFree(d_chirp));
+	checkCudaErrors(cudaFree(d_propagated));
+
+	
 
 	free(vertices);
 	free(h_recorded_hologram);
 	free(h_chirp);
-
-	//checkCudaErrors(cudaFree(d_recorded_hologram));
-	//checkCudaErrors(cudaFree(d_chirp));
-	//checkCudaErrors(cudaFree(d_propagated));
-
-
-	checkCudaErrors(cudaDeviceReset());
-
+	free(h_reconstructed);
+	
+	//glfwTerminate();
+	
 	fprintf(stderr, "No errors (that I'm aware of)! \n");
 	fclose(logfile);
 
 	return 0;
 };
 
-__global__ void cufftComplex2MagnitudeF(float* vbo_magnitude, Complex *z, const int M, const int N){
+__global__ void restrictToRange(float* vbo_magnitude, const int M, const int N){
 	unsigned int i = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int j = blockIdx.y*blockDim.y + threadIdx.y;
 	if (i < M && j < N){
-	float magnitude = sqrt(pow(z[j*N + i].x, (float)2) + pow(z[j*N + i].y, (float)2));
-	//vbo_magnitude[j*height + i] = (PI2 + atanf(sqrt(magnitude))) / PI;
-	vbo_magnitude[i*N + j] = z[i*N + j].x; //log(1.0 + magnitude/65523.0);
-	//vbo_magnitude[j*height + i] = log(1.0 + magnitude/sqrt((float)width*(float)height)); //This is a constant so we might want to calculate this beforehand. 
+		float min_Val = 5.7*7000.0;
+		float max_Val = 1.11*70000.0;
+		vbo_magnitude[i*N + j] = (vbo_magnitude[i*N + j] - min_Val) / (max_Val - min_Val); //This is a constant so we might want to calculate this beforehand. 
+	}
+};
+
+__global__ void cufftComplex2MagnitudeF(float* vbo_mapped_pointer, Complex *z, const int M, const int N){
+	unsigned int i = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int j = blockIdx.y*blockDim.y + threadIdx.y;
+	if (i < M && j < N){
+	float magnitude = sqrt(pow(z[i*N + j].x, (float)2) + pow(z[i*N + j].y, (float)2));
+	vbo_mapped_pointer[i*N + j] = log(1.0 + magnitude / sqrt((float)M*(float)N)) / 75.0; //This is a constant so we might want to calculate this beforehand. 
 	}
 };
 
 __global__ void matrixMulComplexPointw(Complex* A, Complex* B, Complex* C, int M, int N){
-	int i = blockDim.x*blockIdx.x + threadIdx.x;
-
-	if (i < M*N){
-		C[i].x = A[i].x*B[i].x;
-		C[i].y = A[i].y*B[i].x;
+	unsigned int i = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int j = blockIdx.y*blockDim.y + threadIdx.y;
+	if (i < M && j < N){
+		C[i*N + j].x = A[i*N + j].x*B[i*N + j].x;
+		C[i*N + j].y = A[i*N + j].y*B[i*N + j].y;		
 	}
 }
 
@@ -258,8 +277,8 @@ __global__ void checkerBoard(Complex* A, int M, int N){
 	int i = blockIdx.x*blockDim.x + threadIdx.x;
 	int j = blockIdx.y*blockDim.y + threadIdx.y;
 	if (i < M && j < N){
-		A[i*N + j].x =  A[i*N+j].x*(float)((i + j) % 2);
-		A[i*N + j].y =  A[i*N+j].y*(float)((i + j) % 2);
+		A[i*N + j].x = A[i*N + j].x*(float)((i + j) % 2) -A[i*N + j].x*(float)(1 - ((i + j) % 2));
+		A[i*N + j].y = A[i*N + j].y*(float)((i + j) % 2) -A[i*N + j].y*(float)(1 - ((i + j) % 2));
 	}
 }
 
@@ -290,21 +309,26 @@ void mainLoop(	GLFWwindow* window,
 		
 		//Set up the grid
 		dim3 block(16, 16, 1);
-		dim3 grid((unsigned int)parameters.M / block.x, (unsigned int)parameters.N / block.y, 1);
+		//I added the +1 because it might round down which can mean that not all pixels are processed in each kernel. 
+		dim3 grid((unsigned int)parameters.M / block.x+1, (unsigned int)parameters.N / block.y+1, 1);
 		
-		matrixMulComplexPointw <<<grid, block >>>(d_chirp, d_recorded_hologram, d_propagated, parameters.M, parameters.N);
+		matrixMulComplexPointw << <grid, block >> >(d_chirp, d_recorded_hologram, d_propagated, parameters.M, parameters.N);
 		checkCudaErrors(cudaGetLastError());
 
-		//result = cufftExecC2C(plan,d_chirp, d_propagated, CUFFT_FORWARD);
-		//if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
+		result = cufftExecC2C(plan,d_propagated, d_propagated, CUFFT_FORWARD);
+		if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
 		
-		float *dptr; //This is the pointer that we'll write the result to for display in OpenGL.
+		float *vbo_mapped_pointer; //This is the pointer that we'll write the result to for display in OpenGL.
 		checkCudaErrors(cudaGraphicsMapResources(1, &cuda_vbo_resource, 0));
 
 		size_t num_bytes;
-		checkCudaErrors(cudaGraphicsResourceGetMappedPointer((void **)&dptr, &num_bytes, cuda_vbo_resource));
+		checkCudaErrors(cudaGraphicsResourceGetMappedPointer((void **)&vbo_mapped_pointer, &num_bytes, cuda_vbo_resource));
 
-		cufftComplex2MagnitudeF <<<grid, block >>>(dptr, d_chirp, parameters.M, parameters.N);
+
+		cufftComplex2MagnitudeF << <grid, block >> >(vbo_mapped_pointer, d_propagated, parameters.M, parameters.N);
+
+		//restrictToRange << <grid, block >> >(dptr, parameters.M, parameters.N);
+
 		checkCudaErrors(cudaGetLastError());
 		
 		// unmap buffer object

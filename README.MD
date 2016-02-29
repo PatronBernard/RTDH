@@ -7,6 +7,7 @@ Real-Time Digital Holography accelerated with CUDA and visualized with GLFW
 <li>CUDA 7.5</li>
 <li>GLEW 1.13.0</li>
 <li>GLFW 3.1.2 (WIN64)</li>
+<li>GLM 0.9.7.2</li>
 <li>(Visual Studio Express 2013 or another CUDA-compatible VS version)</li>
 </ul>
 <p> It is critical that you use the x64 binaries for GLFW, or you'll get unresolved external symbol-errors.</p>

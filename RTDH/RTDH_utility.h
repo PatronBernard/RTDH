@@ -4,6 +4,7 @@
 #define RTDH_UTILITY_H
 
 #include <stdio.h>
+
 #include <time.h>
 
 typedef float2 Complex;
@@ -170,7 +171,7 @@ char* read_txt(const char* filename){
 
 void construct_chirp(Complex* h_chirp, int M, int N, float lambda, float rec_dist, float pixel_x, float pixel_y){
 	if (h_chirp != NULL){
-		int k, l; float ch_exp, x, y;
+		float ch_exp, x, y;
 
 		float a = PI / (rec_dist*lambda);
 		
@@ -203,6 +204,46 @@ void construct_chirp(Complex* h_chirp, int M, int N, float lambda, float rec_dis
 	}
 	else{
 		fprintf(stderr, "construct_chirp: h_chirp is NULL");
+		exit(EXIT_FAILURE);
+	}
+}
+
+//Export complex data, first the real part, then the imaginary part in 4 byte-floats.
+void export_complex_data(const char* inputfile, Complex* data,const int& elements_amount){
+	if (data != NULL){
+		FILE* OfPtr;
+		OfPtr = fopen(inputfile, "wb+");
+
+		if (OfPtr != NULL){
+			//Write complex (flattened) array (z_1=x_1+i*y_1 | z_2 = x_2 + i*y_2 | ... ) to 
+			//a binary file with the following layout: |x_1 |y_1 |x_2 |y_2 |...
+			float* data_flat = (float*)malloc(sizeof(float)*elements_amount * 2);
+			if (data_flat!=NULL){
+				int n = 0;
+				for (int i = 0; i < 2 * elements_amount; i += 2){
+					data_flat[i] =  data[n].x;
+					data_flat[i + 1] = data[n].y;
+					n++;
+				}
+
+				int elements_written = fwrite(data_flat, sizeof(float), elements_amount * 2, OfPtr);
+				if (elements_written != elements_amount * 2){
+					fprintf(stderr, "export_complex_data: only %d out of %d elements written to file. \n", elements_written, elements_amount * 2);
+					fclose(OfPtr);
+					free(data_flat);
+					exit(EXIT_FAILURE);
+				}
+				free(data_flat);
+			}
+			else{
+				fprintf(stderr, "export_complex_data: %s \n", std::strerror(errno));
+				exit(EXIT_FAILURE);
+			}
+		}
+		fclose(OfPtr);
+	}
+	else{
+		fprintf(stderr, "export_data: input data pointer is NULL. \n");
 		exit(EXIT_FAILURE);
 	}
 }
