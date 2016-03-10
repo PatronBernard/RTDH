@@ -4,9 +4,10 @@
 #define RTDH_UTILITY_H
 
 #include <stdio.h>
-
+#include <cstring>
 #include <time.h>
-
+#include <cufftXt.h>
+#include "ApiController.h"
 typedef float2 Complex;
 
 #define PI	3.1415926535897932384626433832795028841971693993751058209749
@@ -22,6 +23,60 @@ void printTime(FILE* filePtr){
 	fprintf(filePtr, "================================================================================ \n");
 	strftime(text, sizeof(text) - 1, "%d-%m-%Y (%H:%M:%S)", t);
 	fprintf(filePtr, "Error log of %s \n", text);
+}
+
+
+//Prints the file and line number for Vimba errors.
+#define printVimbaError(vmb_err) printVimbaErr(vmb_err, __FILE__, __LINE__);
+
+//Helper function that returns an error string for Vimba API errors
+char* getVimbaErrorStr(VmbErrorType vmb_err){
+	switch(vmb_err){
+	case VmbErrorSuccess:
+		return "VmbErrorSuccess";
+	case VmbErrorInternalFault:
+		return "VmbErrorInternalFault";
+	case VmbErrorApiNotStarted:
+		return "VmbErrorApiNotStarted";
+	case VmbErrorNotFound:
+		return "VmbErrorNotFound";
+	case VmbErrorBadHandle:
+		return "VmbErrorBadHandle";
+	case VmbErrorDeviceNotOpen:
+		return "VmbErrorDeviceNotOpen";
+	case VmbErrorInvalidAccess:
+		return "VmbErrorInvalidAccess";
+	case VmbErrorBadParameter:
+		return "VmbErrorBadParameter";
+	case VmbErrorStructSize :
+		return "VmbErrorStructSize";
+	case VmbErrorMoreData:
+		return "VmbErrorMoreData";
+	case VmbErrorWrongType:
+		return "VmbErrorWrongType";
+	case VmbErrorInvalidValue:
+		return "VmbErrorInvalidValue";
+	case VmbErrorTimeout:
+		return "VmbErrorTimeout";
+	case VmbErrorOther:
+		return "VmbErrorOther";
+	case VmbErrorResources:
+		return "VmbErrorResources";
+	case VmbErrorInvalidCall:
+		return "VmbErrorInvalidCall";
+	case VmbErrorNoTL:
+		return "VmbErrorNoTL";
+	case VmbErrorNotImplemented:
+		return "VmbErrorNotImplemented";
+	case VmbErrorNotSupported:
+		return "VmbErrorNotSupported";
+	case VmbErrorIncomplete:
+		return "VmbErrorIncomplete";
+	}
+}
+
+void printVimbaErr(VmbErrorType vmb_err,const char *const file,const int line){
+	fprintf(stderr,"%s : line %d : Vimba API Error: %s \n",file,line,getVimbaErrorStr(vmb_err));
 }
 
 //Parameters struct
@@ -185,22 +240,6 @@ void construct_chirp(Complex* h_chirp, int M, int N, float lambda, float rec_dis
 
 			}
 		}
-
-		/*
-		for (int i = 0; i < M*N; i++){
-			//Row and column indices corresponding with linear index i. 
-			k = (int)std::floor(float(i / N));
-			l = (i % M);
-
-			x = (float)l - (float)(N / 2);
-			y = (float)-k + (float)(M / 2);
-
-			ch_exp = (float)std::pow(x*pixel_x, 2) + (float)std::pow(y*pixel_y, 2);
-
-			h_chirp[i].x = std::cos(a*ch_exp);
-			h_chirp[i].y = std::sin(a*ch_exp);
-		}
-		*/
 	}
 	else{
 		fprintf(stderr, "construct_chirp: h_chirp is NULL");

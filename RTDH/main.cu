@@ -9,9 +9,6 @@
 #include <glm/glm.hpp>
 #include "glm/gtc/matrix_transform.hpp"
 
-//GLFW
-#include <GLFW\glfw3.h>
-
 //CUDA
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
@@ -25,12 +22,21 @@
 #include "RTDH_GLFW.h"
 #include "RTDH_CUDA.h"
 
+//Vimba stuff
+#include "ApiController.h"
+
+#include <iostream>
+
+//GLFW
+#include <GLFW\glfw3.h>
+
 __global__ void matrixMulComplexPointw(Complex* A, Complex* B, Complex* C, int M, int N);
 
 __global__ void cufftComplex2MagnitudeF(float *vbo_dptr, Complex *z, const int M, const int N, Complex* d_isNan);
 
 __global__ void checkerBoard(Complex* A,const int M,const int N);
 
+__global__ void unsignedChar2cufftComplex(unsigned char *A,int M, int N);
 
 void mainLoop(	GLFWwindow* window, 
 				GLuint shaderprogram, 
@@ -41,7 +47,8 @@ void mainLoop(	GLFWwindow* window,
 				Complex* d_chirp,
 				Complex* d_propagated,
 				cufftHandle plan,
-				cufftResult result);
+				cufftResult result,
+				unsigned char* d_recorded_hologram_uchar);
 
 #define PI	3.1415926535897932384626433832795028841971693993751058209749
 #define PI2 1.570796326794896619231321691639751442098584699687552910487
@@ -49,15 +56,62 @@ void mainLoop(	GLFWwindow* window,
 //TODO: -fix everything, reorganize headers so it makes sense
 //		-perhaps generate a test hologram at a smaller size?
 int main(){
-
-	//=========================INITIALIZATION==========================
 	//Redirect stderror to log.txt.
 	FILE* logfile = freopen("log.txt", "w", stderr);
 	printTime(logfile);
 
+	//Initialize the Vimba API
+	AVT::VmbAPI::Examples::ApiController apiController;
+
+	std::cout << "Vimba Version V " << apiController.GetVersion() << "\n";
+
+	VmbFrameStatusType status = VmbFrameStatusIncomplete;
+
+	VmbErrorType vmb_err = VmbErrorSuccess;
+	vmb_err = apiController.StartUp();
+	if(vmb_err != VmbErrorSuccess){
+		fprintf(stderr,"%s: line %d: Vimba API Error: apiController.Startup() failed. \n",__FILE__,__LINE__);
+		exit(EXIT_FAILURE); 
+	}
+	
+	//Look for cameras
+	std::string strCameraID;
+	AVT::VmbAPI::CameraPtrVector cameraList = apiController.GetCameraList();
+	if(cameraList.size() == 0){
+		fprintf(stderr,"Error: couldn't find a camera. Shutting down... \n");
+		apiController.ShutDown();
+		exit(EXIT_FAILURE);
+	}
+	else{
+		//If a camera is found, get its ID. 
+		
+		vmb_err = cameraList[0]->GetID(strCameraID);
+		if(vmb_err != VmbErrorSuccess){
+			printVimbaError(vmb_err); apiController.ShutDown(); exit(EXIT_FAILURE);}
+	}
+	
+	AVT::VmbAPI::FramePtr pFrame;
+	vmb_err = apiController.AcquireSingleImage(strCameraID, pFrame);
+	if(vmb_err != VmbErrorSuccess){
+		printVimbaError(vmb_err); apiController.ShutDown(); exit(EXIT_FAILURE);}
+
+	
+	//=========================INITIALIZATION==========================
+	
 	//Read the reconstruction parameters. 
 	reconParameters parameters;
 	read_parameters("parameters.txt", &parameters);
+
+	VmbUint32_t frameWidth = 0;
+	VmbUint32_t frameHeight = 0;
+	pFrame->GetWidth(frameWidth);
+	pFrame->GetHeight(frameHeight);
+
+	//Override the parameters supplied in the file (which will be obsolete anyway); 
+	parameters.M=frameHeight;
+	parameters.N=frameWidth;
+
+
 
 	//Initialize the GLFW window
 	GLFWwindow *window = initGLFW(parameters.N, parameters.M); 
@@ -94,7 +148,7 @@ int main(){
 
 
 	//The binary must be in single-precision row-major order !!!
-	float* h_recorded_hologram_real = read_data("recorded_hologram_small.bin");
+	float* h_recorded_hologram_real = read_data("recorded_hologram.bin");
 
 	for (int i = 0; i < parameters.M*parameters.N; i++){
 		h_recorded_hologram[i].x =  h_recorded_hologram_real[i];
@@ -107,6 +161,15 @@ int main(){
 
 	checkCudaErrors(cudaMemcpy(d_recorded_hologram,h_recorded_hologram,sizeof(Complex)*parameters.M*parameters.N,cudaMemcpyHostToDevice));
 
+	unsigned char* d_recorded_hologram_uchar;
+	checkCudaErrors(cudaMalloc((void**)&d_recorded_hologram_uchar,sizeof(unsigned char)*parameters.M*parameters.N));
+
+	//Copy the recorded image to the device
+	VmbUchar_t *pImage;
+	vmb_err = pFrame->GetImage(pImage);
+	checkCudaErrors(cudaMemcpy(	d_recorded_hologram_uchar,pImage,
+								sizeof(unsigned char)*parameters.M*parameters.N,
+								cudaMemcpyHostToDevice));
 
 	Complex* d_propagated;
 	checkCudaErrors(cudaMalloc((void**)&d_propagated, sizeof(Complex)*parameters.M*parameters.N));
@@ -214,7 +277,8 @@ int main(){
 				d_chirp,
 				d_propagated, 
 				plan,
-				result);
+				result,
+				d_recorded_hologram_uchar);
 
 	//Export the last reconstructed frame. 
 	Complex* h_reconstructed=(Complex*) malloc(sizeof(Complex)*parameters.M*parameters.N);
@@ -227,6 +291,7 @@ int main(){
 
 	
 	checkCudaErrors(cudaFree(d_recorded_hologram));
+	checkCudaErrors(cudaFree(d_recorded_hologram_uchar));
 	checkCudaErrors(cudaFree(d_chirp));
 	checkCudaErrors(cudaFree(d_propagated));
 
@@ -237,7 +302,9 @@ int main(){
 	free(h_chirp);
 	free(h_reconstructed);
 	
-	//glfwTerminate();
+	glfwTerminate();
+	apiController.ShutDown();
+
 	
 	fprintf(stderr, "No errors (that I'm aware of)! \n");
 	fclose(logfile);
@@ -260,7 +327,7 @@ __global__ void cufftComplex2MagnitudeF(float* vbo_mapped_pointer, Complex *z, c
 	unsigned int j = blockIdx.y*blockDim.y + threadIdx.y;
 	if (i < M && j < N){
 	float magnitude = sqrt(pow(z[i*N + j].x, (float)2) + pow(z[i*N + j].y, (float)2));
-	vbo_mapped_pointer[i*N + j] = log(1.0 + magnitude / sqrt((float)M*(float)N)) / 75.0; //This is a constant so we might want to calculate this beforehand. 
+	vbo_mapped_pointer[i*N + j] = log(1.0 + magnitude);// / sqrt((float)M*(float)N)) / 75.0; //This is a constant so we might want to calculate this beforehand. 
 	}
 };
 
@@ -282,6 +349,16 @@ __global__ void checkerBoard(Complex* A, int M, int N){
 	}
 }
 
+__global__ void unsignedChar2cufftComplex(Complex* z, unsigned char *A, int M, int N){
+	int i = blockIdx.x*blockDim.x + threadIdx.x;
+	int j = blockIdx.y*blockDim.y + threadIdx.y;
+	if (i < M && j < N){
+		z[i*N+j].x=(float) A[i*N+j]/255.0;
+		z[i*N+j].y=0.0;
+	}
+};
+
+
 
 void mainLoop(	GLFWwindow* window, 
 				GLuint shaderprogram, 
@@ -292,7 +369,8 @@ void mainLoop(	GLFWwindow* window,
 				Complex* d_chirp,
 				Complex* d_propagated,
 				cufftHandle plan,
-				cufftResult result){
+				cufftResult result,
+				unsigned char* d_recorded_hologram_uchar){
 
 	// Measure frametime
 	double frameTime = 0.0;
@@ -312,6 +390,8 @@ void mainLoop(	GLFWwindow* window,
 		//I added the +1 because it might round down which can mean that not all pixels are processed in each kernel. 
 		dim3 grid((unsigned int)parameters.M / block.x+1, (unsigned int)parameters.N / block.y+1, 1);
 		
+		unsignedChar2cufftComplex<< <grid, block >> >(d_recorded_hologram,d_recorded_hologram_uchar,parameters.M,parameters.N);
+
 		matrixMulComplexPointw << <grid, block >> >(d_chirp, d_recorded_hologram, d_propagated, parameters.M, parameters.N);
 		checkCudaErrors(cudaGetLastError());
 
@@ -325,7 +405,7 @@ void mainLoop(	GLFWwindow* window,
 		checkCudaErrors(cudaGraphicsResourceGetMappedPointer((void **)&vbo_mapped_pointer, &num_bytes, cuda_vbo_resource));
 
 
-		cufftComplex2MagnitudeF << <grid, block >> >(vbo_mapped_pointer, d_propagated, parameters.M, parameters.N);
+		cufftComplex2MagnitudeF << <grid, block >> >(vbo_mapped_pointer, d_recorded_hologram, parameters.M, parameters.N);
 
 		//restrictToRange << <grid, block >> >(dptr, parameters.M, parameters.N);
 
