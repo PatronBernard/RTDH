@@ -110,9 +110,9 @@ int main(){
 		vmb_err = pCamera->Close();
 		if(vmb_err != VmbErrorSuccess){
 				printVimbaError(vmb_err); apiController.ShutDown(); exit(EXIT_FAILURE);}
-
 	}
 	
+	//This will be removed later on.
 	AVT::VmbAPI::FramePtr pFrame;
 	vmb_err = apiController.AcquireSingleImage(strCameraID, pFrame);
 	if(vmb_err != VmbErrorSuccess){
@@ -133,8 +133,6 @@ int main(){
 	//Override the parameters supplied in the file (which will be obsolete anyway); 
 	parameters.M=frameHeight;
 	parameters.N=frameWidth;
-
-
 
 	//Initialize the GLFW window
 	//GLFWwindow *window = initGLFW(parameters.N, parameters.M); 
