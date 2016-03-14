@@ -132,7 +132,8 @@ int main(){
 
 
 	//Initialize the GLFW window
-	GLFWwindow *window = initGLFW(parameters.N, parameters.M); 
+	//GLFWwindow *window = initGLFW(parameters.N, parameters.M); 
+	GLFWwindow *window = initGLFW((int)parameters.N/4, (int) parameters.M/4); 
 
 	//Set a few callbacks
 	glfwSetWindowSizeCallback(window, window_size_callback);
@@ -226,7 +227,7 @@ int main(){
 			u = (float)j - 0.5f*(float)parameters.N;
 			v = (float)i - 0.5f*(float)parameters.M;
 			x = (u) / (0.5f*(float)parameters.N);
-			y = (v) / (0.5f*(float)parameters.M);
+			y = -(v) / (0.5f*(float)parameters.M);
 
 			vertices[k] = x;
 			vertices[k + 1] = y;
@@ -351,7 +352,7 @@ __global__ void cufftComplex2MagnitudeF(float* vbo_mapped_pointer, Complex *z, c
 	unsigned int j = blockIdx.y*blockDim.y + threadIdx.y;
 	if (i < M && j < N){
 	float magnitude = sqrt(pow(z[i*N + j].x, (float)2) + pow(z[i*N + j].y, (float)2));
-	vbo_mapped_pointer[i*N + j] = log(1.0 + magnitude);// / sqrt((float)M*(float)N)) / 75.0; //This is a constant so we might want to calculate this beforehand. 
+	vbo_mapped_pointer[i*N + j] = magnitude;// log(1.0 + magnitude);// / sqrt((float)M*(float)N)) / 75.0; //This is a constant so we might want to calculate this beforehand. 
 	}
 };
 
@@ -425,12 +426,12 @@ void mainLoop(	GLFWwindow* window,
 		if(vmb_err != VmbErrorSuccess){
 		printVimbaError(vmb_err); apiController.ShutDown(); exit(EXIT_FAILURE);}
 
-		/*
+		
 		vmb_err = pFrame->GetImage(pImage);
 		checkCudaErrors(cudaMemcpy(	d_recorded_hologram_uchar,pImage,
 								sizeof(unsigned char)*parameters.M*parameters.N,
 								cudaMemcpyHostToDevice));
-*/
+
 		unsignedChar2cufftComplex<< <grid, block >> >(d_recorded_hologram,d_recorded_hologram_uchar,parameters.M,parameters.N);
 
 		matrixMulComplexPointw << <grid, block >> >(d_chirp, d_recorded_hologram, d_propagated, parameters.M, parameters.N);
