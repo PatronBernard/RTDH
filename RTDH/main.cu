@@ -33,14 +33,20 @@
 //GLFW
 #include <GLFW\glfw3.h>
 
+//Pointwise multiplication of two Complex arrays
 __global__ void matrixMulComplexPointw(Complex* A, Complex* B, Complex* C, int M, int N);
 
+//Transforms cufftComplex into a float by calculating the magnitude
 __global__ void cufftComplex2MagnitudeF(float *vbo_dptr, Complex *z, const int M, const int N, Complex* d_isNan);
 
+//Checkerboard function that ensures the quadrants are in the right place after fourier-transforming.
 __global__ void checkerBoard(Complex* A,const int M,const int N);
 
+//Transforms raw camera input into a normalized float. This will change later on
 __global__ void unsignedChar2cufftComplex(unsigned char *A,int M, int N);
 
+
+//This getting out of hand, just add its contents to main() ffs !
 void mainLoop(	GLFWwindow* window, 
 				GLuint shaderprogram, 
 				GLuint projection_Handle, 
@@ -59,20 +65,18 @@ void mainLoop(	GLFWwindow* window,
 #define PI	3.1415926535897932384626433832795028841971693993751058209749
 #define PI2 1.570796326794896619231321691639751442098584699687552910487
 
-//TODO: -fix everything, reorganize headers so it makes sense
-//		-perhaps generate a test hologram at a smaller size?
+
 int main(){
 	//Redirect stderror to log.txt.
 	FILE* logfile = freopen("log.txt", "w", stderr);
 	printTime(logfile);
 
-	//Initialize the Vimba API
+	//Initialize the Vimba API and print some info.
 	AVT::VmbAPI::Examples::ApiController apiController;
 
 	std::cout << "Vimba Version V " << apiController.GetVersion() << "\n";
 
-	VmbFrameStatusType status = VmbFrameStatusIncomplete;
-
+	//Start the API
 	VmbErrorType vmb_err = VmbErrorSuccess;
 	vmb_err = apiController.StartUp();
 	if(vmb_err != VmbErrorSuccess){
@@ -90,22 +94,23 @@ int main(){
 		exit(EXIT_FAILURE);
 	}
 	else{
-		//If a camera is found, try to open it and get its ID. Let's assume only a single camera will be connected.
+		//If a camera is found, store its pointer.
 		pCamera=cameraList[0];
-		//This is a bit useless, settings will be loaded here eventually.
+		vmb_err = pCamera->GetID(strCameraID);
+		if(vmb_err != VmbErrorSuccess){
+			printVimbaError(vmb_err); apiController.ShutDown(); exit(EXIT_FAILURE);}
+
+		//Open the camera and load its settings.
 		vmb_err = pCamera->Open(VmbAccessModeFull);
 		AVT::VmbAPI::StringVector loadedFeatures;
         AVT::VmbAPI::StringVector missingFeatures;
         vmb_err = AVT::VmbAPI::Examples::LoadSaveSettings::LoadFromFile(pCamera, "CameraSettings.xml", loadedFeatures, missingFeatures, false);
-		vmb_err = pCamera->Close();
-
-        if(vmb_err != VmbErrorSuccess){
-			printVimbaError(vmb_err); apiController.ShutDown(); exit(EXIT_FAILURE);}
-		else{
-			vmb_err = pCamera->GetID(strCameraID);
-			if(vmb_err != VmbErrorSuccess){
+		if(vmb_err != VmbErrorSuccess){
 				printVimbaError(vmb_err); apiController.ShutDown(); exit(EXIT_FAILURE);}
-		}
+		vmb_err = pCamera->Close();
+		if(vmb_err != VmbErrorSuccess){
+				printVimbaError(vmb_err); apiController.ShutDown(); exit(EXIT_FAILURE);}
+
 	}
 	
 	AVT::VmbAPI::FramePtr pFrame;
@@ -337,6 +342,7 @@ int main(){
 	return 0;
 };
 
+//Not needed 
 __global__ void restrictToRange(float* vbo_magnitude, const int M, const int N){
 	unsigned int i = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int j = blockIdx.y*blockDim.y + threadIdx.y;
