@@ -25,6 +25,9 @@
 //Vimba stuff
 #include "ApiController.h"
 
+#include "LoadSaveSettings.h"
+
+//Other
 #include <iostream>
 
 //GLFW
@@ -48,6 +51,9 @@ void mainLoop(	GLFWwindow* window,
 				Complex* d_propagated,
 				cufftHandle plan,
 				cufftResult result,
+				std::string strCameraID,
+				AVT::VmbAPI::Examples::ApiController apiController,
+				AVT::VmbAPI::FramePtr pFrame,
 				unsigned char* d_recorded_hologram_uchar);
 
 #define PI	3.1415926535897932384626433832795028841971693993751058209749
@@ -76,6 +82,7 @@ int main(){
 	
 	//Look for cameras
 	std::string strCameraID;
+	AVT::VmbAPI::CameraPtr pCamera;
 	AVT::VmbAPI::CameraPtrVector cameraList = apiController.GetCameraList();
 	if(cameraList.size() == 0){
 		fprintf(stderr,"Error: couldn't find a camera. Shutting down... \n");
@@ -83,11 +90,22 @@ int main(){
 		exit(EXIT_FAILURE);
 	}
 	else{
-		//If a camera is found, get its ID. 
-		
-		vmb_err = cameraList[0]->GetID(strCameraID);
-		if(vmb_err != VmbErrorSuccess){
+		//If a camera is found, try to open it and get its ID. Let's assume only a single camera will be connected.
+		pCamera=cameraList[0];
+		//This is a bit useless, settings will be loaded here eventually.
+		vmb_err = pCamera->Open(VmbAccessModeFull);
+		AVT::VmbAPI::StringVector loadedFeatures;
+        AVT::VmbAPI::StringVector missingFeatures;
+        vmb_err = AVT::VmbAPI::Examples::LoadSaveSettings::LoadFromFile(pCamera, "CameraSettings.xml", loadedFeatures, missingFeatures, false);
+		vmb_err = pCamera->Close();
+
+        if(vmb_err != VmbErrorSuccess){
 			printVimbaError(vmb_err); apiController.ShutDown(); exit(EXIT_FAILURE);}
+		else{
+			vmb_err = pCamera->GetID(strCameraID);
+			if(vmb_err != VmbErrorSuccess){
+				printVimbaError(vmb_err); apiController.ShutDown(); exit(EXIT_FAILURE);}
+		}
 	}
 	
 	AVT::VmbAPI::FramePtr pFrame;
@@ -278,6 +296,9 @@ int main(){
 				d_propagated, 
 				plan,
 				result,
+				strCameraID,
+				apiController,
+				pFrame,
 				d_recorded_hologram_uchar);
 
 	//Export the last reconstructed frame. 
@@ -303,6 +324,9 @@ int main(){
 	free(h_reconstructed);
 	
 	glfwTerminate();
+
+	//Gracefully (lol, as if) end Vimba stuff.
+	if(pCamera != NULL){pCamera->Close();}
 	apiController.ShutDown();
 
 	
@@ -370,6 +394,9 @@ void mainLoop(	GLFWwindow* window,
 				Complex* d_propagated,
 				cufftHandle plan,
 				cufftResult result,
+				std::string strCameraID,
+				AVT::VmbAPI::Examples::ApiController apiController,
+				AVT::VmbAPI::FramePtr pFrame,
 				unsigned char* d_recorded_hologram_uchar){
 
 	// Measure frametime
@@ -378,6 +405,8 @@ void mainLoop(	GLFWwindow* window,
 	int fps_prev = 1;
 	int framecounter = 1;
 	std::string wtitle;
+	VmbErrorType vmb_err;
+	VmbUchar_t *pImage;
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -390,6 +419,18 @@ void mainLoop(	GLFWwindow* window,
 		//I added the +1 because it might round down which can mean that not all pixels are processed in each kernel. 
 		dim3 grid((unsigned int)parameters.M / block.x+1, (unsigned int)parameters.N / block.y+1, 1);
 		
+		//Fetch an image, copy it to the device and convert it
+ 
+		vmb_err = apiController.AcquireSingleImage(strCameraID, pFrame);
+		if(vmb_err != VmbErrorSuccess){
+		printVimbaError(vmb_err); apiController.ShutDown(); exit(EXIT_FAILURE);}
+
+		/*
+		vmb_err = pFrame->GetImage(pImage);
+		checkCudaErrors(cudaMemcpy(	d_recorded_hologram_uchar,pImage,
+								sizeof(unsigned char)*parameters.M*parameters.N,
+								cudaMemcpyHostToDevice));
+*/
 		unsignedChar2cufftComplex<< <grid, block >> >(d_recorded_hologram,d_recorded_hologram_uchar,parameters.M,parameters.N);
 
 		matrixMulComplexPointw << <grid, block >> >(d_chirp, d_recorded_hologram, d_propagated, parameters.M, parameters.N);
