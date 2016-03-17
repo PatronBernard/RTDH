@@ -109,18 +109,22 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\glew-1.13.0\include;C:\glfw-3.1.2.bin.WIN32\include;C:\glm;C:\Program Files\Allied Vision\Vimba_1.4;C:\Users\Public\Documents\Allied Vision\Vimba_1.4\VimbaCPP_Examples;C:\Program Files\Allied Vision\Vimba_1.4\VimbaCPP\Include;C:\Program Files\Allied Vision\Vimba_1.4\ThirdParty\TinyXML\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Program Files\Allied Vision\Vimba_1.4\VimbaImageTransform\Include;C:\glew-1.13.0\include;C:\glfw-3.1.2.bin.WIN32\include;C:\glm;C:\Program Files\Allied Vision\Vimba_1.4;C:\Users\Public\Documents\Allied Vision\Vimba_1.4\VimbaCPP_Examples;C:\Program Files\Allied Vision\Vimba_1.4\VimbaCPP\Include;C:\Program Files\Allied Vision\Vimba_1.4\ThirdParty\TinyXML\Include;C:\Users\Public\Documents\Allied Vision\Vimba_1.4\VimbaCPP_Examples\Bin\$(Platform);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>Release\Win32\glew32s.lib;opengl32.lib;glfw3.lib;cufft.lib;VimbaCPP.lib;tinyxml.lib;cudart.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\glew-1.13.0\lib;C:\glfw-3.1.2.bin.WIN32\lib-vc2012;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\lib\Win32;$(VIMBA_HOME)\VimbaCPP\Lib\Win$(PlatformArchitecture);$(VIMBA_HOME)\ThirdParty\TinyXML\Lib\Win$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>VimbaImageTransform.lib;VimbaCPP.lib;Release\Win32\glew32s.lib;opengl32.lib;glfw3.lib;cufft.lib;tinyxml.lib;cudart.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Program Files\Allied Vision\Vimba_1.4\VimbaImageTransform\Lib\$(Platform);C:\glew-1.13.0\lib;C:\glfw-3.1.2.bin.WIN32\lib-vc2012;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\lib\Win32;$(VIMBA_HOME)\VimbaCPP\Lib\Win$(PlatformArchitecture);$(VIMBA_HOME)\ThirdParty\TinyXML\Lib\Win$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>echo copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
+    <CudaCompile>
+      <GenerateRelocatableDeviceCode>false</GenerateRelocatableDeviceCode>
+      <CodeGeneration>compute_20,sm_20;compute_30,sm_30;compute_35,sm_35;compute_50,sm_50</CodeGeneration>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -247,18 +251,24 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <CudaCompile Include="kernels.cu" />
     <CudaCompile Include="main.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApiController.h" />
+    <ClInclude Include="BaseException.h" />
     <ClInclude Include="cuFFT_helper_functions.h" />
+    <ClInclude Include="FrameObserver.h" />
     <ClInclude Include="helper_cuda.h" />
     <ClInclude Include="helper_string.h" />
     <ClInclude Include="LoadSaveSettings.h" />
+    <ClInclude Include="ProgramConfig.h" />
+    <ClInclude Include="FrameObserverRTDH.h" />
     <ClInclude Include="RTDH_CUDA.h" />
     <ClInclude Include="RTDH_GL.h" />
     <ClInclude Include="RTDH_GLFW.h" />
     <ClInclude Include="RTDH_utility.h" />
+    <ClInclude Include="TransformImage.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="fragment_src.glsl" />
@@ -266,10 +276,14 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ApiController.cpp" />
+    <ClCompile Include="FrameObserver.cpp" />
+    <ClCompile Include="FrameObserverRTDH.cpp" />
     <ClCompile Include="LoadSaveSettings.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <Xml Include="CameraSettings.xml" />
+    <Xml Include="CameraSettings.xml">
+      <SubType>Designer</SubType>
+    </Xml>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

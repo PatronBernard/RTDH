@@ -72,6 +72,8 @@ char* getVimbaErrorStr(VmbErrorType vmb_err){
 		return "VmbErrorNotSupported";
 	case VmbErrorIncomplete:
 		return "VmbErrorIncomplete";
+	default: 
+		return NULL;
 	}
 }
 

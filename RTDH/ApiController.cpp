@@ -9,7 +9,7 @@
   File:        ApiController.cpp
 
   Description: Implementation file for the ApiController helper class that
-               demonstrates how to implement a synchronous single image
+               demonstrates how to implement an asynchronous, continuous image
                acquisition with VimbaCPP.
 
 -------------------------------------------------------------------------------
@@ -26,7 +26,6 @@
   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 =============================================================================*/
-
 #include <sstream>
 #include <iostream>
 
@@ -38,18 +37,22 @@ namespace AVT {
 namespace VmbAPI {
 namespace Examples {
 
-enum { NUM_FRAMES = 3, };
+#define NUM_FRAMES 3
 
 ApiController::ApiController()
     // Get a reference to the Vimba singleton
     : m_system ( VimbaSystem::GetInstance() )
-{
-}
+{}
 
 ApiController::~ApiController()
 {
 }
 
+// Translates Vimba error codes to readable error messages
+std::string ApiController::ErrorCodeToMessage( VmbErrorType eErr ) const
+{
+    return AVT::VmbAPI::Examples::ErrorCodeToMessage( eErr );
+}
 
 VmbErrorType ApiController::StartUp()
 {
@@ -62,10 +65,10 @@ void ApiController::ShutDown()
     m_system.Shutdown();
 }
 
-VmbErrorType ApiController::AcquireSingleImage( const std::string &rStrCameraID, FramePtr &rpFrame )
+VmbErrorType ApiController::StartContinuousImageAcquisition( const ProgramConfig &Config )
 {
     // Open the desired camera by its ID
-    VmbErrorType res = m_system.OpenCameraByID( rStrCameraID.c_str(), VmbAccessModeFull, m_pCamera );
+    VmbErrorType res = m_system.OpenCameraByID( Config.getCameraID().c_str(), VmbAccessModeFull, m_pCamera );
     if ( VmbErrorSuccess == res )
     {
         // Set the GeV packet size to the highest possible value
@@ -85,33 +88,74 @@ VmbErrorType ApiController::AcquireSingleImage( const std::string &rStrCameraID,
                 } while ( false == bIsCommandDone );
             }
         }
-        FeaturePtr pFormatFeature;
-        // Set pixel format. For the sake of simplicity we only support Mono and BGR in this example.
-        res = m_pCamera->GetFeatureByName( "PixelFormat", pFormatFeature );
+
         if ( VmbErrorSuccess == res )
         {
-            // Try to set BGR
-            res = pFormatFeature->SetValue( VmbPixelFormatRgb8 );
-            if ( VmbErrorSuccess != res )
-            {
-                // Fall back to Mono
-                res = pFormatFeature->SetValue( VmbPixelFormatMono8 );
-            }
-
+            // set camera so that transform algorithmens will never fail
+            res = PrepareCamera();
             if ( VmbErrorSuccess == res )
             {
-                // Acquire
-                res = m_pCamera->AcquireSingleImage( rpFrame, 5000 );
+                // Create a frame observer for this camera (This will be wrapped in a shared_ptr so we don't delete it)
+                m_pFrameObserver = new FrameObserverRTDH(m_pCamera);
+                // Start streaming
+                res = m_pCamera->StartContinuousImageAcquisition( NUM_FRAMES, IFrameObserverPtr( m_pFrameObserver ));
             }
         }
-
-        m_pCamera->Close();
+        if ( VmbErrorSuccess != res )
+        {
+            // If anything fails after opening the camera we close it
+            m_pCamera->Close();
+        }
     }
 
     return res;
 }
+/**setting a feature to maximum value that is a multiple of 2*/
+VmbErrorType SetIntFeatureValueModulo2( const CameraPtr &pCamera, const char* const& Name )
+{
+    VmbErrorType    result;
+    FeaturePtr      feature;
+    VmbInt64_t      value_min,value_max;
+    result = SP_ACCESS( pCamera )->GetFeatureByName( Name, feature );
+    if( VmbErrorSuccess != result )
+    {
+        return result;
+    }
+    result = SP_ACCESS( feature )->GetRange( value_min, value_max );
+    if( VmbErrorSuccess != result )
+    {
+        return result;
+    }
+    value_max =( value_max>>1 )<<1;
+    result = SP_ACCESS( feature )->SetValue ( value_max );
+    return result;
+}
+/**prepare camera so that the delivered image will not fail in image transform*/
+VmbErrorType ApiController::PrepareCamera()
+{
+    VmbErrorType result;
+    result = SetIntFeatureValueModulo2( m_pCamera, "Width" );
+    if( VmbErrorSuccess != result )
+    {
+        return result;
+    }
+    result = SetIntFeatureValueModulo2( m_pCamera, "Height" );
+    if( VmbErrorSuccess != result )
+    {
+        return result;
+    }
+    return result;
+}
+VmbErrorType ApiController::StopContinuousImageAcquisition()
+{
+    // Stop streaming
+    m_pCamera->StopContinuousImageAcquisition();
 
-CameraPtrVector ApiController::GetCameraList()
+    // Close camera
+    return  m_pCamera->Close();
+}
+
+CameraPtrVector ApiController::GetCameraList() const
 {
     CameraPtrVector cameras;
     // Get all known cameras
@@ -122,19 +166,10 @@ CameraPtrVector ApiController::GetCameraList()
     }
     return CameraPtrVector();
 }
-// Translates Vimba error codes to readable error messages
-std::string ApiController::ErrorCodeToMessage( VmbErrorType eErr ) const
-{
-    return AVT::VmbAPI::Examples::ErrorCodeToMessage( eErr );
-}
-// Translates Vimba error codes to readable error messages
-
 std::string ApiController::GetVersion() const
 {
-    std::ostringstream os;
+    std::ostringstream  os;
     os<<m_system;
     return os.str();
 }
-
-
 }}} // namespace AVT::VmbAPI::Examples

@@ -8,9 +8,9 @@
 
   File:        ApiController.h
 
-  Description: Implementation file for the ApiController helper class that
-               demonstrates how to implement a synchronous single image
-               acquisition with VimbaCPP.
+  Description: Header file for the ApiController helper class that demonstrates
+               how to implement an asynchronous, continuous image acquisition
+               with VimbaCPP.
 
 -------------------------------------------------------------------------------
 
@@ -34,6 +34,8 @@
 
 #include "VimbaCPP/Include/VimbaCPP.h"
 
+#include "FrameObserverRTDH.h"
+
 namespace AVT {
 namespace VmbAPI {
 namespace Examples {
@@ -44,21 +46,21 @@ class ApiController
     ApiController();
     ~ApiController();
 
-    VmbErrorType    StartUp();
-    void            ShutDown();
+    VmbErrorType        StartUp();
+    void                ShutDown();
 
-    VmbErrorType    AcquireSingleImage( const std::string &rStrCameraID, FramePtr &rpFrame );
+    VmbErrorType        StartContinuousImageAcquisition( const ProgramConfig &Config );
+    VmbErrorType        StopContinuousImageAcquisition();
 
-    CameraPtrVector GetCameraList();
-
-    std::string     ErrorCodeToMessage( VmbErrorType eErr ) const ;
-    std::string     GetVersion() const;
-
+    CameraPtrVector     GetCameraList() const;
+    std::string         ErrorCodeToMessage( VmbErrorType eErr ) const;
+    std::string         GetVersion() const;
+	FrameObserverRTDH*  m_pFrameObserver;           // Every camera has its own frame observer
   private:
-    // A reference to our Vimba singleton
-    VimbaSystem &m_system;
-    // The currently streaming camera
-    CameraPtr m_pCamera;
+    VmbErrorType        PrepareCamera();
+    VimbaSystem &       m_system;                   // A reference to our Vimba singleton
+    CameraPtr           m_pCamera;                  // The currently streaming camera
+    
 };
 
 }}} // namespace AVT::VmbAPI::Examples
