@@ -1,3 +1,5 @@
+typedef float2 Complex; 
+
 __global__ void cufftComplex2MagnitudeF(float* vbo_mapped_pointer, Complex *z, const int M, const int N){;
 
 __global__ void matrixMulComplexPointw(Complex* A, Complex* B, Complex* C, int M, int N);

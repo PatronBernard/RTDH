@@ -12,7 +12,7 @@
 //CUDA
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
-#include "kernels.cu"
+#include "kernels.h"
 
 //Project specific includes
 #include <cuda_gl_interop.h>//Visualization

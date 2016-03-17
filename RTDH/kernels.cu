@@ -2,6 +2,7 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 #include "cufftXt.h"
+#include "kernels.cuh"
 
 typedef float2 Complex; 
 
