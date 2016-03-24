@@ -1,5 +1,5 @@
-#ifndef GL_HELPER_FUNCTIONS_H
-#define GL_HELPER_FUNCTIONS_H
+#ifndef RTDH_GL_H
+#define RTDH_GL_H
 
 #include <GL/glew.h>
 #include <stdio.h>

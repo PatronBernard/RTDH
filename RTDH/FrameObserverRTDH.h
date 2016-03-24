@@ -1,5 +1,8 @@
+
+#ifndef _FRAMEOBSERVERRTDH_H
+#define _FRAMEOBSERVERRTDH_H
+
 #include <GL\glew.h>
-#include <GLFW\glfw3.h>
 #include <cufftXt.h>
 //#include "RTDH_utility.h"
 typedef float2 Complex;
@@ -7,6 +10,8 @@ typedef float2 Complex;
 #include <queue>
 #include "VimbaCPP/Include/VimbaCPP.h"
 #include "ProgramConfig.h"
+
+#include <GLFW\glfw3.h>
 
 //Idea: derive this class from IFrame Observer
 namespace AVT {
@@ -25,17 +30,28 @@ public:
 				Complex* d_chirp,
 				Complex* d_propagated,
 				cufftHandle plan,
-				cufftResult result,
 				std::string strCameraID,
-				AVT::VmbAPI::FramePtr pFrame,
 				unsigned char* d_recorded_hologram_uchar);
 
 	// This is our callback routine that will be executed on every received frame
     virtual void FrameReceived( const FramePtr pFrame);
 
-	private:
+private:
 	VmbUchar_t *pImage;
     double GetTime();
+		//Things needed for RTDH
+	GLFWwindow* window;
+	GLuint shaderprogram;
+	GLuint projection_Handle;
+	cudaGraphicsResource *cuda_vbo_resource;
+	Complex* d_recorded_hologram;
+	Complex* d_chirp;
+	Complex* d_propagated;
+	cufftHandle plan;
+	std::string strCameraID;
+	AVT::VmbAPI::FramePtr pFrame;
+	unsigned char* d_recorded_hologram_uchar;
+
     template <typename T>
     class ValueWithState
     {
@@ -43,19 +59,6 @@ public:
         T m_Value;
         bool m_State;
 
-		//Things needed for RTDH
-		GLFWwindow* window;
-		GLuint shaderprogram;
-		GLuint projection_Handle;
-		cudaGraphicsResource *cuda_vbo_resource;
-		Complex* d_recorded_hologram;
-		Complex* d_chirp;
-		Complex* d_propagated;
-		cufftHandle plan;
-		cufftResult result;
-		std::string strCameraID;
-		AVT::VmbAPI::FramePtr pFrame;
-		unsigned char* d_recorded_hologram_uchar;
 
     public:
         ValueWithState()
@@ -90,3 +93,4 @@ public:
 #endif //WIN32
 };
 }}
+#endif

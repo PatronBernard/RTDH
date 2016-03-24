@@ -1,10 +1,11 @@
+#ifndef _KERNELS_CU_
+#define _KERNELS_CU_
+typedef float2 Complex; 
+
 #include "device_launch_parameters.h"
 #include "cuda.h"
-#include "cuda_runtime.h"
+#include <cuda_runtime_api.h>
 #include "cufftXt.h"
-#include "kernels.cuh"
-
-typedef float2 Complex; 
 
 __global__ void cufftComplex2MagnitudeF(float* vbo_mapped_pointer, Complex *z, const int M, const int N){
 	unsigned int i = blockIdx.x*blockDim.x + threadIdx.x;
@@ -72,3 +73,4 @@ void launch_unsignedChar2cufftComplex(Complex* z, unsigned char *A, int M, int N
 	dim3 grid((unsigned int)M / block.x+1, (unsigned int)N / block.y+1, 1);
 	unsignedChar2cufftComplex<<<grid, block>>>(z, A, M, N);
 }
+#endif

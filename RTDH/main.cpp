@@ -18,14 +18,11 @@
 #include <cuda_gl_interop.h>//Visualization
 #include "cufftXt.h"		//CUDA FFT
 #include "helper_cuda.h"	//heckCudaErrors
+#include <cuda_runtime.h>
 
 #include "RTDH_utility.h"	
 #include "RTDH_GLFW.h"
 #include "RTDH_CUDA.h"
-
-//Vimba stuff
-#include "ApiController.h"
-#include "LoadSaveSettings.h"
 
 //Other
 #include <iostream>
@@ -33,15 +30,15 @@
 //GLFW
 #include <GLFW\glfw3.h>
 
+//Vimba stuff
+#include "ApiController.h"
+#include "LoadSaveSettings.h"
 
 #define PI	3.1415926535897932384626433832795028841971693993751058209749
 #define PI2 1.570796326794896619231321691639751442098584699687552910487
 
-//Kijk CUDA build customizations na !!! (cfr. fluidsGL)
-//Kernel declarations
-extern "C" void launch_checkerBoard(Complex* A, int M, int N); 
-
 int main(){
+	
 	//Redirect stderror to log.txt.
 	FILE* logfile = freopen("log.txt", "w", stderr);
 	printTime(logfile);
@@ -155,6 +152,7 @@ int main(){
 		h_recorded_hologram[i].y = 0.0;
 	}
 	*/
+
 	//Copy the hologram to the GPU
 	Complex* d_recorded_hologram;
 	checkCudaErrors(cudaMalloc((void**)&d_recorded_hologram, sizeof(Complex)*parameters.M*parameters.N));
@@ -273,9 +271,7 @@ int main(){
 				d_chirp,
 				d_propagated,
 				plan,
-				result,
 				strCameraID,
-				pFrame,
 				d_recorded_hologram_uchar);
 
 	apiController.StartContinuousImageAcquisition(Config);
@@ -398,7 +394,7 @@ int main(){
 	
 	fprintf(stderr, "No errors (that I'm aware of)! \n");
 	fclose(logfile);
-
+	
 	return 0;
 };
 

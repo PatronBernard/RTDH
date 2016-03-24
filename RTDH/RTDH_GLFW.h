@@ -2,10 +2,10 @@
 #define RTDH_GLFW_H
 
 #include <GL/glew.h>
-#include <GLFW\glfw3.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "RTDH_GL.h"
+#include <GLFW\glfw3.h>
 
 //Initialize GLFW, make a window with the right size and initialize GLEW
 GLFWwindow* initGLFW(int width, int height){
@@ -48,6 +48,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 {
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
+		
 }
 
 //Allows you to resize the window. 

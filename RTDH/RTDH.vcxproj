@@ -251,41 +251,34 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CudaCompile Include="kernels.cuh" />
     <CudaCompile Include="kernels.cu" />
     <CudaCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApiController.h" />
-    <ClInclude Include="BaseException.h" />
     <ClInclude Include="cuFFT_helper_functions.h" />
-    <ClInclude Include="FrameObserver.h" />
-    <ClInclude Include="helper_cuda.h" />
-    <ClInclude Include="helper_string.h" />
+    <ClInclude Include="FrameObserverRTDH.h" />
     <ClInclude Include="kernels.h" />
     <ClInclude Include="LoadSaveSettings.h" />
-    <ClInclude Include="ProgramConfig.h" />
-    <ClInclude Include="FrameObserverRTDH.h" />
     <ClInclude Include="RTDH_CUDA.h" />
     <ClInclude Include="RTDH_GL.h" />
     <ClInclude Include="RTDH_GLFW.h" />
     <ClInclude Include="RTDH_utility.h" />
-    <ClInclude Include="TransformImage.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="ApiController.cpp" />
+    <ClCompile Include="cuFFT_helper_functions.cpp" />
+    <ClCompile Include="FrameObserverRTDH.cpp" />
+    <ClCompile Include="LoadSaveSettings.cpp" />
+    <ClCompile Include="RTDH_CUDA.cpp" />
+    <ClCompile Include="RTDH_utility.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="fragment_src.glsl" />
     <None Include="vertex_src.glsl" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ApiController.cpp" />
-    <ClCompile Include="FrameObserver.cpp" />
-    <ClCompile Include="FrameObserverRTDH.cpp" />
-    <ClCompile Include="LoadSaveSettings.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <Xml Include="CameraSettings.xml">
-      <SubType>Designer</SubType>
-    </Xml>
+    <Xml Include="CameraSettings.xml" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
