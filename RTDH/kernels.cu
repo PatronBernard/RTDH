@@ -2,10 +2,10 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 #include "cufftXt.h"
-#include "kernels.cuh"
+
 
 typedef float2 Complex; 
-
+/*
 __global__ void cufftComplex2MagnitudeF(float* vbo_mapped_pointer, Complex *z, const int M, const int N){
 	unsigned int i = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int j = blockIdx.y*blockDim.y + threadIdx.y;
@@ -23,7 +23,7 @@ __global__ void matrixMulComplexPointw(Complex* A, Complex* B, Complex* C, int M
 		C[i*N + j].y = A[i*N + j].y*B[i*N + j].y;		
 	}
 }
-
+*/
 __global__ void checkerBoard(Complex* A, int M, int N){
 	int i = blockIdx.x*blockDim.x + threadIdx.x;
 	int j = blockIdx.y*blockDim.y + threadIdx.y;
@@ -33,6 +33,14 @@ __global__ void checkerBoard(Complex* A, int M, int N){
 	}
 }
 
+extern "C"
+void launch_checkerBoard(Complex* A, int M, int N){
+	dim3 block(16, 16, 1);
+	dim3 grid((unsigned int)M / block.x+1, (unsigned int)N / block.y+1, 1);
+	checkerBoard<<<grid, block>>>(A,M,N);
+}
+
+/*
 __global__ void unsignedChar2cufftComplex(Complex* z, unsigned char *A, int M, int N){
 	int i = blockIdx.x*blockDim.x + threadIdx.x;
 	int j = blockIdx.y*blockDim.y + threadIdx.y;
@@ -40,8 +48,7 @@ __global__ void unsignedChar2cufftComplex(Complex* z, unsigned char *A, int M, i
 		z[i*N+j].x=(float) A[i*N+j]/255.0;
 		z[i*N+j].y=0.0;
 	}
-};
-
+}
 
 extern "C"
 void launch_cufftComplex2MagnitudeF(float* vbo_mapped_pointer, Complex *z, const int M, const int N){
@@ -59,12 +66,6 @@ void launch_matrixMulComplexPointw(Complex* A, Complex* B, Complex* C, int M, in
 	matrixMulComplexPointw<<<grid, block>>>(A, B, C, M, N);
 }
 
-extern "C"
-void launch_checkerBoard(Complex* A, int M, int N){
-	dim3 block(16, 16, 1);
-	dim3 grid((unsigned int)M / block.x+1, (unsigned int)N / block.y+1, 1);
-	checkerBoard<<<grid, block>>>(A,M,N);
-}
 
 extern "C"
 void launch_unsignedChar2cufftComplex(Complex* z, unsigned char *A, int M, int N){
@@ -72,3 +73,4 @@ void launch_unsignedChar2cufftComplex(Complex* z, unsigned char *A, int M, int N
 	dim3 grid((unsigned int)M / block.x+1, (unsigned int)N / block.y+1, 1);
 	unsignedChar2cufftComplex<<<grid, block>>>(z, A, M, N);
 }
+*/

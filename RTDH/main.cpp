@@ -12,7 +12,6 @@
 //CUDA
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
-#include "kernels.h"
 
 //Project specific includes
 #include <cuda_gl_interop.h>//Visualization
@@ -37,7 +36,6 @@
 #define PI	3.1415926535897932384626433832795028841971693993751058209749
 #define PI2 1.570796326794896619231321691639751442098584699687552910487
 
-//Kijk CUDA build customizations na !!! (cfr. fluidsGL)
 //Kernel declarations
 extern "C" void launch_checkerBoard(Complex* A, int M, int N); 
 

@@ -4,9 +4,6 @@
     <CudaCompile Include="kernels.cu">
       <Filter>Resources</Filter>
     </CudaCompile>
-    <CudaCompile Include="kernels.cuh">
-      <Filter>Headers</Filter>
-    </CudaCompile>
     <CudaCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -64,9 +61,6 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="FrameObserverRTDH.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="kernels.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>
