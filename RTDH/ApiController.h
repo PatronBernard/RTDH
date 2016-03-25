@@ -49,7 +49,16 @@ class ApiController
     VmbErrorType        StartUp();
     void                ShutDown();
 
-    VmbErrorType        StartContinuousImageAcquisition( const ProgramConfig &Config );
+    VmbErrorType        StartContinuousImageAcquisition( const ProgramConfig &Config,GLFWwindow* window, 
+				GLuint shaderprogram, 
+				GLuint projection_Handle, 
+				cudaGraphicsResource *cuda_vbo_resource, 
+				Complex* d_recorded_hologram, 
+				Complex* d_chirp,
+				Complex* d_propagated,
+				cufftHandle plan,
+				std::string strCameraID,
+				unsigned char* d_recorded_hologram_uchar);
     VmbErrorType        StopContinuousImageAcquisition();
 
     CameraPtrVector     GetCameraList() const;

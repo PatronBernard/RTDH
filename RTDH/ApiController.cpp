@@ -65,7 +65,16 @@ void ApiController::ShutDown()
     m_system.Shutdown();
 }
 
-VmbErrorType ApiController::StartContinuousImageAcquisition( const ProgramConfig &Config )
+VmbErrorType ApiController::StartContinuousImageAcquisition( const ProgramConfig &Config, GLFWwindow* window, 
+				GLuint shaderprogram, 
+				GLuint projection_Handle, 
+				cudaGraphicsResource *cuda_vbo_resource, 
+				Complex* d_recorded_hologram, 
+				Complex* d_chirp,
+				Complex* d_propagated,
+				cufftHandle plan,
+				std::string strCameraID,
+				unsigned char* d_recorded_hologram_uchar)
 {
     // Open the desired camera by its ID
     VmbErrorType res = m_system.OpenCameraByID( Config.getCameraID().c_str(), VmbAccessModeFull, m_pCamera );
@@ -97,6 +106,17 @@ VmbErrorType ApiController::StartContinuousImageAcquisition( const ProgramConfig
             {
                 // Create a frame observer for this camera (This will be wrapped in a shared_ptr so we don't delete it)
                 m_pFrameObserver = new FrameObserverRTDH(m_pCamera);
+				m_pFrameObserver->loadAllTheOtherStuff(window, 
+				shaderprogram, 
+				projection_Handle, 
+				cuda_vbo_resource, 
+				d_recorded_hologram, 
+				d_chirp,
+				d_propagated,
+				plan,
+				strCameraID,
+				d_recorded_hologram_uchar);
+
                 // Start streaming
                 res = m_pCamera->StartContinuousImageAcquisition( NUM_FRAMES, IFrameObserverPtr( m_pFrameObserver ));
             }

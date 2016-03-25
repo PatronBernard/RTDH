@@ -262,8 +262,9 @@ int main(){
 	//=========================MAIN LOOP==========================
 
 	GLuint projection_Handle= glGetUniformLocation(shaderprogram, "Projection");
-	
-	apiController.m_pFrameObserver->loadAllTheOtherStuff(window, 
+	//This won't work, m_pFrameObser doesn't exist yets
+
+	apiController.StartContinuousImageAcquisition(Config,window, 
 				shaderprogram, 
 				projection_Handle, 
 				cuda_vbo_resource, 
@@ -273,8 +274,6 @@ int main(){
 				plan,
 				strCameraID,
 				d_recorded_hologram_uchar);
-
-	apiController.StartContinuousImageAcquisition(Config);
 	getchar();
 	apiController.StopContinuousImageAcquisition();
 

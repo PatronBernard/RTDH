@@ -65,6 +65,12 @@
     <ClCompile Include="cuFFT_helper_functions.cpp">
       <Filter>Resources</Filter>
     </ClCompile>
+    <ClCompile Include="RTDH_GLFW.cpp">
+      <Filter>Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="RTDH_GL.cpp">
+      <Filter>Resources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vertex_src.glsl">
