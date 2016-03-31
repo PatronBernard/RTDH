@@ -21,13 +21,7 @@
     <ClInclude Include="RTDH_CUDA.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="ApiController.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="cuFFT_helper_functions.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="FrameObserverRTDH.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="kernels.h">
@@ -45,15 +39,15 @@
     <ClInclude Include="RTDH_utility.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="ApiController.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="FrameObserver.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RTDH_CUDA.cpp">
-      <Filter>Resources</Filter>
-    </ClCompile>
-    <ClCompile Include="ApiController.cpp">
-      <Filter>Resources</Filter>
-    </ClCompile>
-    <ClCompile Include="FrameObserverRTDH.cpp">
       <Filter>Resources</Filter>
     </ClCompile>
     <ClCompile Include="LoadSaveSettings.cpp">
@@ -69,6 +63,12 @@
       <Filter>Resources</Filter>
     </ClCompile>
     <ClCompile Include="RTDH_GL.cpp">
+      <Filter>Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="ApiController.cpp">
+      <Filter>Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="FrameObserver.cpp">
       <Filter>Resources</Filter>
     </ClCompile>
   </ItemGroup>

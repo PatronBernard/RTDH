@@ -24,6 +24,8 @@
 #include "RTDH_GLFW.h"
 #include "RTDH_CUDA.h"
 
+#include "ListFeatures\Source\ListFeatures.h"
+
 //Other
 #include <iostream>
 
@@ -45,7 +47,6 @@ int main(){
 
 	//Initialize the Vimba API and print some info.
 	AVT::VmbAPI::Examples::ApiController apiController;
-
 	std::cout << "Vimba Version V " << apiController.GetVersion() << "\n";
 
 	//Start the API
@@ -55,6 +56,7 @@ int main(){
 		fprintf(stderr,"%s: line %d: Vimba API Error: apiController.Startup() failed. \n",__FILE__,__LINE__);
 		exit(EXIT_FAILURE); 
 	}
+
 	//Look for cameras
 	std::string strCameraID;
 	AVT::VmbAPI::CameraPtr pCamera;
@@ -83,35 +85,26 @@ int main(){
 				printVimbaError(vmb_err); apiController.ShutDown(); exit(EXIT_FAILURE);}
 	}
 	
-	//This will be removed later on.
-	AVT::VmbAPI::FramePtr pFrame;
-	/*
-	vmb_err = apiController.AcquireSingleImage(strCameraID, pFrame);
-	if(vmb_err != VmbErrorSuccess){
-		printVimbaError(vmb_err); apiController.ShutDown(); exit(EXIT_FAILURE);}
-		*/
-	//Let's try to get a Frame observer thing going
+	//Uhh...
 	AVT::VmbAPI::Examples::ProgramConfig Config;
 	Config.setCameraID(strCameraID);
-
 	
+	AVT::VmbAPI::FeaturePtr feature_width;
+	pCamera->GetFeatureByName("Width", feature_width);
+	//_ASSERT(_CrtCheckMemory);
+	//VmbInt64_t width;
+	//VmbFeatureDataType dataType;
+	//feature_width->GetDataType(dataType);
+	
+	//std::cout << (int) width << "\n";
+
 	//=========================INITIALIZATION==========================
 	
 	//Read the reconstruction parameters. 
 	reconParameters parameters;
 	read_parameters("parameters.txt", &parameters);
-
-	//VmbUint32_t frameWidth = 0;
-	//VmbUint32_t frameHeight = 0;
-	//pFrame->GetWidth(frameWidth);
-	//pFrame->GetHeight(frameHeight);
-
-	//Override the parameters supplied in the file (which will be obsolete anyway); 
-	//parameters.M=frameHeight;
-	//parameters.N=frameWidth;
-
+	
 	//Initialize the GLFW window
-	//GLFWwindow *window = initGLFW(parameters.N, parameters.M); 
 	GLFWwindow *window = initGLFW((int)parameters.N/4, (int) parameters.M/4); 
 
 	//Set a few callbacks
@@ -274,6 +267,7 @@ int main(){
 				plan,
 				strCameraID,
 				d_recorded_hologram_uchar);
+
 	getchar();
 	apiController.StopContinuousImageAcquisition();
 

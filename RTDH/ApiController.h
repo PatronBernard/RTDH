@@ -34,7 +34,9 @@
 
 #include "VimbaCPP/Include/VimbaCPP.h"
 
-#include "FrameObserverRTDH.h"
+#include "FrameObserver.h"
+
+
 
 namespace AVT {
 namespace VmbAPI {

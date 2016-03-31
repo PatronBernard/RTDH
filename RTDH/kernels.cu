@@ -43,6 +43,14 @@ __global__ void unsignedChar2cufftComplex(Complex* z, unsigned char *A, int M, i
 	}
 };
 
+__global__ void modify(unsigned char *A, int M, int N){
+	int i = blockIdx.x*blockDim.x + threadIdx.x;
+	int j = blockIdx.y*blockDim.y + threadIdx.y;
+	if (i < M && j < N){
+		A[i*N+j]=A[i*N+j]*2;
+	}
+}
+
 
 extern "C"
 void launch_cufftComplex2MagnitudeF(float* vbo_mapped_pointer, Complex *z, const int M, const int N){
@@ -72,5 +80,12 @@ void launch_unsignedChar2cufftComplex(Complex* z, unsigned char *A, int M, int N
 	dim3 block(16, 16, 1);
 	dim3 grid((unsigned int)M / block.x+1, (unsigned int)N / block.y+1, 1);
 	unsignedChar2cufftComplex<<<grid, block>>>(z, A, M, N);
+}
+
+extern "C"
+void launch_Modify(unsigned char* A, int M, int N){
+	dim3 block(16, 16, 1);
+	dim3 grid((unsigned int)M / block.x+1, (unsigned int)N / block.y+1, 1);
+	modify<<<grid, block>>>(A, M, N);
 }
 #endif
