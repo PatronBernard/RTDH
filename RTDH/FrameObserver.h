@@ -77,8 +77,11 @@ class FrameObserver : virtual public IFrameObserver
     // the frame observer stores all FramePtr
     std::queue<FramePtr> m_Frames;
     AVT::VmbAPI::Mutex m_FramesMutex;
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> origin/master
 };
 
 }}} // namespace AVT::VmbAPI::Examples
