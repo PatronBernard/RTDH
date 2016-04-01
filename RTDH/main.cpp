@@ -59,7 +59,6 @@ int main(){
 	}
 	
 	//Look for cameras
-	
 	std::string strCameraID;
 	AVT::VmbAPI::CameraPtr pCamera;
 	AVT::VmbAPI::CameraPtrVector cameraList = apiController.GetCameraList();
@@ -89,9 +88,6 @@ int main(){
 				
 	}
 	
-	//Uhh...
-	AVT::VmbAPI::Examples::ProgramConfig Config;
-	Config.setCameraID(strCameraID);
 	
 	//Fetch the dimensions of the image.
 	pCamera->Open(VmbAccessModeFull);
@@ -253,7 +249,7 @@ int main(){
 
 	GLuint projection_Handle= glGetUniformLocation(shaderprogram, "Projection");
 	//This won't work, m_pFrameObser doesn't exist yets
-	
+	/*
 	apiController.StartContinuousImageAcquisition(Config,window, 
 				shaderprogram, 
 				projection_Handle, 
@@ -264,7 +260,8 @@ int main(){
 				plan,
 				strCameraID,
 				d_recorded_hologram_uchar);
-				
+			*/	
+	apiController.StartContinuousImageAcquisition(strCameraID);
 	getchar();
 	apiController.StopContinuousImageAcquisition();
 

@@ -1,5 +1,5 @@
 /*=============================================================================
-  Copyright (C) 2012 - 2016 Allied Vision Technologies.  All Rights Reserved.
+  Copyright (C) 2012 Allied Vision Technologies.  All Rights Reserved.
 
   Redistribution of this file, in original or modified form, without
   prior written consent of Allied Vision Technologies is prohibited.
@@ -31,45 +31,50 @@
 
 #include <queue>
 #include <VimbaCPP/Include/VimbaCPP.h>
+#include <GL\glew.h>
+#include <cufftXt.h>
+
+typedef float2 Complex;
+#include "ProgramConfig.h"
+
+#include <GLFW\glfw3.h>
+
+
 
 namespace AVT {
 namespace VmbAPI {
 namespace Examples {
 
+#define WM_FRAME_READY WM_USER + 1
 
-
-class FrameObserver : virtual public IFrameObserver
+class FrameObserverRTDH : virtual public IFrameObserver
 {
   public:
-    //
     // We pass the camera that will deliver the frames to the constructor
-    //
-    // Parameters:
-    //  [in]    pCamera             The camera the frame was queued at
-    //
-    FrameObserver( CameraPtr pCamera ) : IFrameObserver( pCamera ) {;}
+      FrameObserverRTDH( CameraPtr pCamera ) : IFrameObserver( pCamera ) {;}
     
-    //
-    // This is our callback routine that will be executed on every received frame.
-    // Triggered by the API.
-    //
-    // Parameters:
-    //  [in]    pFrame          The frame returned from the API
-    //
+    // This is our callback routine that will be executed on every received frame
     virtual void FrameReceived( const FramePtr pFrame );
 
-    //
-    // After the view has been notified about a new frame it can pick it up.
-    // It is then removed from the internal queue
-    //
-    // Returns:
-    //  A shared pointer to the latest frame
-    //
+	//Passes all the resources so that FrameReceived can reconstruct the hologram
+	void loadAllTheOtherStuff(GLFWwindow* window, 
+				GLuint shaderprogram, 
+				GLuint projection_Handle, 
+				cudaGraphicsResource *cuda_vbo_resource, 
+				Complex* d_recorded_hologram, 
+				Complex* d_chirp,
+				Complex* d_propagated,
+				cufftHandle plan,
+				std::string strCameraID,
+				unsigned char* d_recorded_hologram_uchar);
+
+
+    // After the view has been notified about a new frame it can pick it up
     FramePtr GetFrame();
 
-    //
-    // Clears the internal (double buffering) frame queue
-    //
+	void Reconstruct();
+
+    // Clears the double buffer frame queue
     void ClearFrameQueue();
 
   private:
@@ -77,6 +82,19 @@ class FrameObserver : virtual public IFrameObserver
     // the frame observer stores all FramePtr
     std::queue<FramePtr> m_Frames;
     AVT::VmbAPI::Mutex m_FramesMutex;
+
+	//Things needed for RTDH
+	GLFWwindow* window;
+	GLuint shaderprogram;
+	GLuint projection_Handle;
+	cudaGraphicsResource *cuda_vbo_resource;
+	Complex* d_recorded_hologram;
+	Complex* d_chirp;
+	Complex* d_propagated;
+	cufftHandle plan;
+	std::string strCameraID;
+	AVT::VmbAPI::FramePtr pFrame;
+	unsigned char* d_recorded_hologram_uchar;
 };
 
 }}} // namespace AVT::VmbAPI::Examples
