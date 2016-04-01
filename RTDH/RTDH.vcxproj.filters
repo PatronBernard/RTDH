@@ -39,10 +39,10 @@
     <ClInclude Include="RTDH_utility.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="ApiController.h">
+    <ClInclude Include="FrameObserver.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="FrameObserver.h">
+    <ClInclude Include="ApiController.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>
