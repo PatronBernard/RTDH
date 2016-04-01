@@ -15,8 +15,6 @@ typedef float2 Complex;
 
 //Parameters struct
 struct reconParameters{
-	int M;			//Vertical image size
-	int N;			//Horizontal image size
 	float pixel_x;	//Physical CCD pixel size 
 	float pixel_y;  //Physical CCD pixel size
 	float lambda;	//Laser wavelength

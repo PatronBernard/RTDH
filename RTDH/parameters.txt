@@ -1,5 +1,3 @@
-2054 //Vertical image size
-2452 //Horizontal image size
 3.450000000000000e-06 	//Horizontal pixel size
 3.450000000000000e-06 	//Vertical pixel size
 6.328000000000000e-07 	//Wavelength

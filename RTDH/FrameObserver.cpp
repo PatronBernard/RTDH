@@ -41,17 +41,10 @@ void FrameObserverRTDH::FrameReceived( const FramePtr pFrame )
 {
     bool bQueueDirectly = true;
     VmbFrameStatusType eReceiveStatus;
-
+	
     if( VmbErrorSuccess == pFrame->GetReceiveStatus( eReceiveStatus ) )
     {
-		/*
-        CWinApp *pApp = AfxGetApp();
-        if( NULL != pApp )
-        {
-            CWnd *pMainWin = pApp->GetMainWnd();
-            if( NULL != pMainWin )
-            {
-				*/
+
                 // Lock the frame queue
                 m_FramesMutex.Lock();
                 // We store the FramePtr
@@ -62,14 +55,9 @@ void FrameObserverRTDH::FrameReceived( const FramePtr pFrame )
                 m_FramesMutex.Unlock();
 
 				this->Reconstruct();
-				/*
-                // And notify the view about it
-                pMainWin->PostMessage( WM_FRAME_READY, eReceiveStatus );
-                bQueueDirectly = false;
-            }
+			          
+				bQueueDirectly = false;
 
-        }
-		*/
     }
 
     // If any error occurred we queue the frame without notification
@@ -81,6 +69,7 @@ void FrameObserverRTDH::FrameReceived( const FramePtr pFrame )
 
 void FrameObserverRTDH::Reconstruct(){
 	//Fetch the frame from the frame queue
+	/*
 	AVT::VmbAPI::FramePtr currentFrame = this->GetFrame();
 
 	//Get the size
@@ -92,10 +81,11 @@ void FrameObserverRTDH::Reconstruct(){
 	vmb_err=currentFrame->GetWidth(N);
 	if(vmb_err != VmbErrorSuccess){
 		printVimbaError(vmb_err); exit(EXIT_FAILURE);}
-
+		*/
 	printf("Received a frame! \n");
-	VmbUchar_t *image;
-	currentFrame->GetImage(image);
+	//VmbUchar_t *image;
+	//currentFrame->GetImage(image);
+	/*
 	checkCudaErrors(cudaMemcpy(this->d_recorded_hologram_uchar,image,
 									sizeof(unsigned char)*(unsigned int)M*(unsigned int)N,
 									cudaMemcpyHostToDevice));
@@ -111,9 +101,9 @@ void FrameObserverRTDH::Reconstruct(){
 									cudaMemcpyDeviceToHost));
 	
 	printf("%u ========== %u \n",image[150],resultaat[150]);
+	*/
 
-
-
+	/*
 	launch_unsignedChar2cufftComplex(this->d_recorded_hologram,
 											 this->d_recorded_hologram_uchar,
 											 (unsigned int)M,(unsigned int)N);
@@ -123,7 +113,7 @@ void FrameObserverRTDH::Reconstruct(){
 
 	cufftResult_t result = cufftExecC2C(this->plan,this->d_propagated, this->d_propagated, CUFFT_FORWARD);
 		if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
-		
+		*/
 
 		/*
 		float *vbo_mapped_pointer; //This is the pointer that we'll write the result to for display in OpenGL.
@@ -151,7 +141,7 @@ void FrameObserverRTDH::Reconstruct(){
 		//glUniformMatrix4fv(projection_Handle, 1, GL_FALSE, &Projection[0][0]);
 		*/
 
-	glDrawArrays(GL_POINTS, 0, (unsigned int)N*(unsigned int)M);
+	//glDrawArrays(GL_POINTS, 0, (unsigned int)N*(unsigned int)M);
 
 	glfwSwapBuffers(this->window);
 	glfwPollEvents();

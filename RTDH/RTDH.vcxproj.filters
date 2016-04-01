@@ -85,4 +85,9 @@
       <Filter>Other</Filter>
     </Xml>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="parameters.txt">
+      <Filter>Other</Filter>
+    </Text>
+  </ItemGroup>
 </Project>

@@ -116,24 +116,6 @@ void read_parameters(const char *inputfile, struct reconParameters *parameters){
 	else{
 		fgets(line, 1024, file_ptr);
 		if (!feof(file_ptr)){
-			parameters->M = (int)std::strtod(line, NULL);
-		}
-		else{
-			fprintf(stderr, "read_parameters: file ended prematurely.\n");
-			exit(EXIT_FAILURE);
-		}
-
-		fgets(line, 1024, file_ptr);
-		if (!feof(file_ptr)){
-			parameters->N = (int)std::strtod(line, NULL);
-		}
-		else{
-			fprintf(stderr, "read_parameters: file ended prematurely.\n");
-			exit(EXIT_FAILURE);
-		}
-
-		fgets(line, 1024, file_ptr);
-		if (!feof(file_ptr)){
 			parameters->pixel_x = (float)std::strtod(line, NULL);
 		}
 		else{

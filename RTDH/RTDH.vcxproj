@@ -108,14 +108,14 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Program Files\Allied Vision\Vimba_1.4\VimbaImageTransform\Include;C:\glew-1.13.0\include;C:\glfw-3.1.2.bin.WIN32\include;C:\glm;C:\Program Files\Allied Vision\Vimba_1.4;C:\Users\Public\Documents\Allied Vision\Vimba_1.4\VimbaCPP_Examples;C:\Program Files\Allied Vision\Vimba_1.4\VimbaCPP\Include;C:\Program Files\Allied Vision\Vimba_1.4\ThirdParty\TinyXML\Include;C:\Users\Public\Documents\Allied Vision\Vimba_1.4\VimbaCPP_Examples\Bin\$(Platform);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions> _CRT_SECURE_NO_WARNINGS; WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Program Files\Allied Vision\Vimba_2.0\VimbaImageTransform\Include;C:\glew-1.13.0\include;C:\glfw-3.1.2.bin.WIN32\include;C:\glm;C:\Program Files\Allied Vision\Vimba_2.0;C:\Users\Public\Documents\Allied Vision\Vimba_2.0\VimbaCPP_Examples;C:\Program Files\Allied Vision\Vimba_2.0\VimbaCPP\Include;C:\Program Files\Allied Vision\Vimba_2.0\ThirdParty\TinyXML\Include;C:\Users\Public\Documents\Allied Vision\Vimba_2.0\VimbaCPP_Examples\Bin\$(Platform);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <AdditionalDependencies>VimbaImageTransform.lib;VimbaCPP.lib;Release\Win32\glew32s.lib;opengl32.lib;glfw3.lib;cufft.lib;tinyxml.lib;cudart.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\Program Files\Allied Vision\Vimba_1.4\VimbaImageTransform\Lib\$(Platform);C:\glew-1.13.0\lib;C:\glfw-3.1.2.bin.WIN32\lib-vc2012;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\lib\Win32;$(VIMBA_HOME)\VimbaCPP\Lib\Win$(PlatformArchitecture);$(VIMBA_HOME)\ThirdParty\TinyXML\Lib\Win$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Program Files\Allied Vision\Vimba_2.0\VimbaImageTransform\Lib\$(Platform);C:\glew-1.13.0\lib;C:\glfw-3.1.2.bin.WIN32\lib-vc2012;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\lib\Win32;$(VIMBA_HOME)\VimbaCPP\Lib\Win$(PlatformArchitecture);$(VIMBA_HOME)\ThirdParty\TinyXML\Lib\Win$(PlatformArchitecture);C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>echo copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
@@ -281,6 +281,9 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
   </ItemGroup>
   <ItemGroup>
     <Xml Include="CameraSettings.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="parameters.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
