@@ -31,6 +31,8 @@
 
 #include <queue>
 #include <VimbaCPP/Include/VimbaCPP.h>
+#include <GLFW\glfw3.h>
+#include <cuda_gl_interop.h>
 
 namespace AVT {
 namespace VmbAPI {
@@ -67,6 +69,7 @@ class FrameObserver : virtual public IFrameObserver
     //
     FramePtr GetFrame();
 
+	void loadResources(GLFWwindow *window, cudaGraphicsResource *cuda_vbo_resource);
     //
     // Clears the internal (double buffering) frame queue
     //
@@ -77,7 +80,8 @@ class FrameObserver : virtual public IFrameObserver
     // the frame observer stores all FramePtr
     std::queue<FramePtr> m_Frames;
     AVT::VmbAPI::Mutex m_FramesMutex;
-
+	GLFWwindow *window;
+	cudaGraphicsResource *cuda_vbo_resource;
 
 };
 

@@ -117,6 +117,7 @@ int main(){
 	//Initialize the GLFW window
 	GLFWwindow *window = initGLFW(N/4, M/4); 
 
+
 	//Set a few callbacks
 	glfwSetWindowSizeCallback(window, window_size_callback);
 	glfwSetKeyCallback(window, key_callback);
@@ -244,7 +245,7 @@ int main(){
 	if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
 	
 
-
+	
 	//=========================MAIN LOOP==========================
 
 	GLuint projection_Handle= glGetUniformLocation(shaderprogram, "Projection");
@@ -261,7 +262,8 @@ int main(){
 				strCameraID,
 				d_recorded_hologram_uchar);
 			*/	
-	apiController.StartContinuousImageAcquisition(strCameraID);
+	
+	apiController.StartContinuousImageAcquisition(strCameraID, window, cuda_vbo_resource);
 	getchar();
 	apiController.StopContinuousImageAcquisition();
 

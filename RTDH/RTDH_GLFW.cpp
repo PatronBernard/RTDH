@@ -18,7 +18,6 @@ GLFWwindow* initGLFW(int width, int height){
 		exit(EXIT_FAILURE);
 	}
 	glfwMakeContextCurrent(window);
-
 	//Multisampling, not sure if it actually works
 	//glfwWindowHint(GLFW_SAMPLES,16);
 
@@ -33,6 +32,7 @@ GLFWwindow* initGLFW(int width, int height){
 		exit(EXIT_FAILURE);
 	}
 	checkGLError(glGetError());
+	
 	return window;
 }
 

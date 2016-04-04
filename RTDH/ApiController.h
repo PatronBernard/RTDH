@@ -83,7 +83,9 @@ class ApiController
     // Returns:
     //  An API status code
     //
-    VmbErrorType        StartContinuousImageAcquisition( const std::string &rStrCameraID );
+    VmbErrorType        StartContinuousImageAcquisition( const std::string &rStrCameraID,
+														GLFWwindow *window, 
+														cudaGraphicsResource *cuda_vbo_resource);
 
     //
     // Calls the API convenience function to stop image acquisition

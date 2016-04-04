@@ -134,7 +134,8 @@ inline VmbErrorType SetFeatureIntValue( const CameraPtr &camera, const std::stri
 // Returns:
 //  An API status code
 //
-VmbErrorType ApiController::StartContinuousImageAcquisition( const std::string &rStrCameraID )
+VmbErrorType ApiController::StartContinuousImageAcquisition( const std::string &rStrCameraID,
+															GLFWwindow *window, cudaGraphicsResource *cuda_vbo_resource)
 {
     // Open the desired camera by its ID
     VmbErrorType res = m_system.OpenCameraByID( rStrCameraID.c_str(), VmbAccessModeFull, m_pCamera );
@@ -181,6 +182,7 @@ VmbErrorType ApiController::StartContinuousImageAcquisition( const std::string &
                 {
                     // Create a frame observer for this camera (This will be wrapped in a shared_ptr so we don't delete it)
                     SP_SET( m_pFrameObserver,new FrameObserver( m_pCamera ) );
+					SP_DYN_CAST( m_pFrameObserver,FrameObserver )->loadResources(window, cuda_vbo_resource); 
                     // Start streaming
                     res = SP_ACCESS( m_pCamera )->StartContinuousImageAcquisition( NUM_FRAMES, m_pFrameObserver );
                 }

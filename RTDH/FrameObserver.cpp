@@ -25,13 +25,22 @@
   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 =============================================================================*/
-
+#include "RTDH_CUDA.h"
+#include "RTDH_utility.h"
 
 #include "FrameObserver.h"
+
+
 
 namespace AVT {
 namespace VmbAPI {
 namespace Examples {
+
+
+void FrameObserver::loadResources(GLFWwindow *window, cudaGraphicsResource *cuda_vbo_resource){
+	this->window=window;
+	this->cuda_vbo_resource=cuda_vbo_resource;
+};
 
 //
 // This is our callback routine that will be executed on every received frame.
@@ -61,7 +70,21 @@ void FrameObserver::FrameReceived( const FramePtr pFrame )
 				//THIS IS IMPORTANT, OTHERWISE THE PROGRAM ENDS, REMOVE IT LATER ON
 				m_pCamera->QueueFrame(pFrame);
                 bQueueDirectly = false;
-				printf("Ewa kheb een foto G \n");
+				
+
+				
+				glfwMakeContextCurrent(this->window);
+
+				_ASSERT(NULL!=wglGetCurrentContext());
+				float *vbo_mapped_pointer; //This is the pointer that we'll write the result to for display in OpenGL.
+				checkCudaErrors(cudaGraphicsMapResources(1, &this->cuda_vbo_resource, 0));
+
+				// unmap buffer object
+				checkCudaErrors(cudaGraphicsUnmapResources(1, &this->cuda_vbo_resource, 0));
+
+				//_ASSERT(NULL==glfwGetCurrentContext());
+				//_ASSERT(NULL!=wglGetCurrentContext());
+
     }
 
     // If any error occurred we queue the frame without notification
