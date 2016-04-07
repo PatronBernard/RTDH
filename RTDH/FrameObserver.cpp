@@ -63,27 +63,8 @@ void FrameObserver::FrameReceived( const FramePtr pFrame )
                 m_Frames.push( pFrame );
                 // Unlock frame queue
                 m_FramesMutex.Unlock();
-                // And notify the view about it
 
-				FramePtr frame = this->GetFrame();
-
-				//THIS IS IMPORTANT, OTHERWISE THE PROGRAM ENDS, REMOVE IT LATER ON
-				m_pCamera->QueueFrame(pFrame);
                 bQueueDirectly = false;
-				
-
-				
-				glfwMakeContextCurrent(this->window);
-
-				_ASSERT(NULL!=wglGetCurrentContext());
-				float *vbo_mapped_pointer; //This is the pointer that we'll write the result to for display in OpenGL.
-				checkCudaErrors(cudaGraphicsMapResources(1, &this->cuda_vbo_resource, 0));
-
-				// unmap buffer object
-				checkCudaErrors(cudaGraphicsUnmapResources(1, &this->cuda_vbo_resource, 0));
-
-				//_ASSERT(NULL==glfwGetCurrentContext());
-				//_ASSERT(NULL!=wglGetCurrentContext());
 
     }
 
