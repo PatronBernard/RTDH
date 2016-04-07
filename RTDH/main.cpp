@@ -28,6 +28,7 @@
 
 //Other
 #include <iostream>
+#include "cameraMode.h"
 
 //GLFW
 #include <GLFW\glfw3.h>
@@ -38,6 +39,7 @@
 
 #define PI	3.1415926535897932384626433832795028841971693993751058209749
 #define PI2 1.570796326794896619231321691639751442098584699687552910487
+
 
 int main(){
 	
@@ -115,7 +117,7 @@ int main(){
 	read_parameters("parameters.txt", &parameters);
 	
 	//Initialize the GLFW window
-	GLFWwindow *window = initGLFW(N/4, M/4); 
+	GLFWwindow *window = initGLFW((int)N/4, (int) M/4); 
 
 
 	//Set a few callbacks
@@ -142,9 +144,6 @@ int main(){
 	launch_checkerBoard(d_chirp, M, N);
 	checkCudaErrors(cudaGetLastError());
 
-	//Read the recorded hologram from a file. This will be replaced by the CCD later on.
-	Complex* h_recorded_hologram = (Complex*)malloc(sizeof(Complex)*M*N);
-	if (h_recorded_hologram == NULL){ printError(); exit(EXIT_FAILURE); }
 
 
 	//Copy the hologram to the GPU
@@ -247,24 +246,92 @@ int main(){
 
 	
 	//=========================MAIN LOOP==========================
-
+	//Possibly n
 	GLuint projection_Handle= glGetUniformLocation(shaderprogram, "Projection");
-	//This won't work, m_pFrameObser doesn't exist yets
-	/*
-	apiController.StartContinuousImageAcquisition(Config,window, 
-				shaderprogram, 
-				projection_Handle, 
-				cuda_vbo_resource, 
-				d_recorded_hologram, 
-				d_chirp,
-				d_propagated,
-				plan,
-				strCameraID,
-				d_recorded_hologram_uchar);
-			*/	
 	
-	apiController.StartContinuousImageAcquisition(strCameraID, window, cuda_vbo_resource);
-	getchar();
+	apiController.StartContinuousImageAcquisition(strCameraID);
+	AVT::VmbAPI::FramePtr frame;
+	VmbUchar_t *image;
+	char c;
+	VmbFrameStatusType eReceiveStatus;
+	float *vbo_mapped_pointer;
+	
+	size_t num_bytes;
+
+	//Start the main loop
+	while(!glfwWindowShouldClose(window)){
+		//Fetch a frame
+		frame=apiController.GetFrame();
+		if(	!SP_ISNULL( frame) )
+        {      
+			frame->GetReceiveStatus(eReceiveStatus);
+			//If it is not NULL or incompletem, process it.
+			if(eReceiveStatus==VmbFrameStatusComplete){
+				frame->GetImage(image);
+				//Copy to device
+				checkCudaErrors(cudaMemcpy(d_recorded_hologram_uchar,image,
+										sizeof(unsigned char)*M*N,
+										cudaMemcpyHostToDevice));
+				//
+				launch_unsignedChar2cufftComplex(d_recorded_hologram,
+												 d_recorded_hologram_uchar,
+												 M,N);
+
+
+				if (cMode == cameraModeReconstruct){
+						//Multiply with (checkerboarded) chirp function
+						launch_matrixMulComplexPointw(d_chirp, d_recorded_hologram, d_propagated,M,N);
+						checkCudaErrors(cudaGetLastError());
+						std::cout << "Reconstruct \n";
+						//FFT
+						result = cufftExecC2C(plan,d_propagated, d_propagated, CUFFT_FORWARD);
+						if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
+						
+						//Write to openGL object
+
+						checkCudaErrors(cudaGraphicsMapResources(1, &cuda_vbo_resource, 0));
+						checkCudaErrors(cudaGraphicsResourceGetMappedPointer(	(void **)&vbo_mapped_pointer, 
+																			&num_bytes, cuda_vbo_resource));
+						launch_cufftComplex2MagnitudeF(vbo_mapped_pointer, d_propagated,1/(sqrt((float)M*(float)N)), M, N);
+						checkCudaErrors(cudaGetLastError());
+						checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_vbo_resource, 0));	
+				}
+				else if(cMode == cameraModeVideo){	
+						checkCudaErrors(cudaGraphicsMapResources(1, &cuda_vbo_resource, 0));
+						checkCudaErrors(cudaGraphicsResourceGetMappedPointer(	(void **)&vbo_mapped_pointer, 
+																			&num_bytes, cuda_vbo_resource));
+						launch_cufftComplex2MagnitudeF(vbo_mapped_pointer, d_recorded_hologram, 1.0, M, N);
+						checkCudaErrors(cudaGetLastError());	
+					    // unmap buffer object
+						checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_vbo_resource, 0));	
+						std::cout << "Video \n";
+				}
+				else if (cMode == cameraModeFFT){
+						launch_checkerBoard(d_recorded_hologram,M,N); 	
+
+						result = cufftExecC2C(plan,d_recorded_hologram, d_recorded_hologram, CUFFT_FORWARD);
+						if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
+						checkCudaErrors(cudaGraphicsMapResources(1, &cuda_vbo_resource, 0));
+						checkCudaErrors(cudaGraphicsResourceGetMappedPointer(	(void **)&vbo_mapped_pointer, 
+																			&num_bytes, cuda_vbo_resource));
+						launch_cufftComplex2MagnitudeF(vbo_mapped_pointer, d_recorded_hologram, 1.0/sqrt((float)M*(float)N), M, N);
+						checkCudaErrors(cudaGetLastError());
+										// unmap buffer object
+						checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_vbo_resource, 0));	
+						std::cout << "FFT \n";
+				}
+
+				
+				//Draw everything, see if keys were pressed.
+				glDrawArrays(GL_POINTS, 0, (unsigned int)N*(unsigned int)M);
+
+				glfwSwapBuffers(window);
+				glfwPollEvents();
+			}
+		}
+
+		apiController.QueueFrame(frame);
+	}
 	apiController.StopContinuousImageAcquisition();
 
 	//Export the last reconstructed frame. 
@@ -281,7 +348,6 @@ int main(){
 	checkCudaErrors(cudaFree(d_propagated));
 
 	free(vertices);
-	free(h_recorded_hologram);
 	free(h_chirp);
 	free(h_reconstructed);
 	

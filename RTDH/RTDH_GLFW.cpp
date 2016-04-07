@@ -44,15 +44,15 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		glfwSetWindowShouldClose(window, GL_TRUE);
 	}
 	if (key == GLFW_KEY_1 && action == GLFW_PRESS){
-		cMode=cameraModeReconstruct; std::cout << "Reconstruct Mode \n";
+		cMode=cameraModeReconstruct; //std::cout << "Reconstruct Mode \n";
 	}
 
 	if (key == GLFW_KEY_2 && action == GLFW_PRESS){
-		cMode=cameraModeVideo; std::cout << "Video Mode \n";
+		cMode=cameraModeVideo; //std::cout << "Video Mode \n";
 	}
 
 	if (key == GLFW_KEY_3 && action == GLFW_PRESS){
-		cMode=cameraModeFFT; std::cout << "FFT Mode \n";
+		cMode=cameraModeFFT; //std::cout << "FFT Mode \n";
 	}
 }
 

@@ -25,22 +25,12 @@
   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 =============================================================================*/
-#include "RTDH_CUDA.h"
-#include "RTDH_utility.h"
 
 #include "FrameObserver.h"
-
-
 
 namespace AVT {
 namespace VmbAPI {
 namespace Examples {
-
-
-void FrameObserver::loadResources(GLFWwindow *window, cudaGraphicsResource *cuda_vbo_resource){
-	this->window=window;
-	this->cuda_vbo_resource=cuda_vbo_resource;
-};
 
 //
 // This is our callback routine that will be executed on every received frame.
@@ -56,7 +46,7 @@ void FrameObserver::FrameReceived( const FramePtr pFrame )
 
     if( VmbErrorSuccess == pFrame->GetReceiveStatus( eReceiveStatus ) )
     {
-
+       
                 // Lock the frame queue
                 m_FramesMutex.Lock();
                 // We store the FramePtr
@@ -64,8 +54,8 @@ void FrameObserver::FrameReceived( const FramePtr pFrame )
                 // Unlock frame queue
                 m_FramesMutex.Unlock();
 
-                bQueueDirectly = false;
-
+                //bQueueDirectly = false;
+ 
     }
 
     // If any error occurred we queue the frame without notification
