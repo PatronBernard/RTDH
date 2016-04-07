@@ -1,6 +1,6 @@
 #include "RTDH_GLFW.h"
 
-#include "RTDH_utility.h"
+#include "cameraMode.h"
 //Initialize GLFW, make a window with the right size and initialize GLEW
 GLFWwindow* initGLFW(int width, int height){
 
@@ -44,11 +44,15 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		glfwSetWindowShouldClose(window, GL_TRUE);
 	}
 	if (key == GLFW_KEY_1 && action == GLFW_PRESS){
-		cMode=cameraModeVideo; std::cout << "1 \n";
+		cMode=cameraModeReconstruct; std::cout << "Reconstruct Mode \n";
 	}
 
 	if (key == GLFW_KEY_2 && action == GLFW_PRESS){
-		cMode=cameraModeReconstruct; std::cout << "2 \n";
+		cMode=cameraModeVideo; std::cout << "Video Mode \n";
+	}
+
+	if (key == GLFW_KEY_3 && action == GLFW_PRESS){
+		cMode=cameraModeFFT; std::cout << "FFT Mode \n";
 	}
 }
 

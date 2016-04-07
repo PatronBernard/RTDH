@@ -7,12 +7,12 @@ typedef float2 Complex;
 #include <cuda_runtime_api.h>
 #include "cufftXt.h"
 
-__global__ void cufftComplex2MagnitudeF(float* vbo_mapped_pointer, Complex *z, const int M, const int N){
+__global__ void cufftComplex2MagnitudeF(float* vbo_mapped_pointer, Complex *z, float scalingFactor, const int M, const int N){
 	unsigned int i = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int j = blockIdx.y*blockDim.y + threadIdx.y;
 	if (i < M && j < N){
 	float magnitude = sqrt(pow(z[i*N + j].x, (float)2) + pow(z[i*N + j].y, (float)2));
-	vbo_mapped_pointer[i*N + j] = magnitude/sqrt((float)M*(float)N); //This is a constant so we might want to calculate this beforehand. 
+	vbo_mapped_pointer[i*N + j] = magnitude*scalingFactor; 
 	}
 };
 
@@ -53,12 +53,12 @@ __global__ void modify(unsigned char *A, int M, int N){
 
 
 extern "C"
-void launch_cufftComplex2MagnitudeF(float* vbo_mapped_pointer, Complex *z, const int M, const int N){
+void launch_cufftComplex2MagnitudeF(float* vbo_mapped_pointer, Complex *z,float scalingFactor, const int M, const int N){
 	//Set up the grid
 	dim3 block(16, 16, 1);
 	//I added the +1 because it might round down which can mean that not all pixels are processed in each kernel. 
 	dim3 grid((unsigned int)M / block.x+1, (unsigned int)N / block.y+1, 1);
-	cufftComplex2MagnitudeF<<<grid, block>>>(vbo_mapped_pointer, z, M, N);
+	cufftComplex2MagnitudeF<<<grid, block>>>(vbo_mapped_pointer, z, scalingFactor, M, N);
 }  
 
 extern "C"
