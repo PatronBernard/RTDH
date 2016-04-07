@@ -12,7 +12,7 @@ __global__ void cufftComplex2MagnitudeF(float* vbo_mapped_pointer, Complex *z, c
 	unsigned int j = blockIdx.y*blockDim.y + threadIdx.y;
 	if (i < M && j < N){
 	float magnitude = sqrt(pow(z[i*N + j].x, (float)2) + pow(z[i*N + j].y, (float)2));
-	vbo_mapped_pointer[i*N + j] = magnitude;// log(1.0 + magnitude);// / sqrt((float)M*(float)N)) / 75.0; //This is a constant so we might want to calculate this beforehand. 
+	vbo_mapped_pointer[i*N + j] = magnitude/sqrt((float)M*(float)N); //This is a constant so we might want to calculate this beforehand. 
 	}
 };
 

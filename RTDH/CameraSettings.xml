@@ -11,7 +11,7 @@
     <Integer Name="AutofunctionAOIWidth">2452</Integer>
     <Integer Name="AutofunctionTargetIntensity">125</Integer>
     <Float Name="BlackLevel">16</Float>
-    <Enumeration Name="ExposureAuto">Off</Enumeration>
+    <Enumeration Name="ExposureAuto">On</Enumeration>
     <Enumeration Name="ExposureAutoTimebase">tb200us</Enumeration>
     <Enumeration Name="ExposureMode">Timed</Enumeration>
     <Float Name="ExposureTime">10065</Float>
@@ -34,7 +34,7 @@
     <Enumeration Name="LineSelector">Line0</Enumeration>
     <Integer Name="OffsetX">0</Integer>
     <Integer Name="OffsetY">0</Integer>
-    <Enumeration Name="PixelFormat">Mono8</Enumeration>
+    <Enumeration Name="PixelFormat">Mono16</Enumeration>
     <Boolean Name="ReverseX">False</Boolean>
     <Boolean Name="ShadingCorrectionEnable">False</Boolean>
     <Boolean Name="ShadingCorrectionShowData">False</Boolean>

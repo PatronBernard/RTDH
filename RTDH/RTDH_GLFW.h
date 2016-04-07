@@ -9,6 +9,7 @@
 #include <stdlib.h>
 
 
+
 //Initialize GLFW, make a window with the right size and initialize GLEW
 GLFWwindow* initGLFW(int width, int height);
 

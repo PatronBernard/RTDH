@@ -1,5 +1,6 @@
 #include "RTDH_GLFW.h"
 
+#include "RTDH_utility.h"
 //Initialize GLFW, make a window with the right size and initialize GLEW
 GLFWwindow* initGLFW(int width, int height){
 
@@ -39,9 +40,16 @@ GLFWwindow* initGLFW(int width, int height){
 //Callback function that closes the window if escape is pressed.
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS){
 		glfwSetWindowShouldClose(window, GL_TRUE);
-		
+	}
+	if (key == GLFW_KEY_1 && action == GLFW_PRESS){
+		cMode=cameraModeVideo; std::cout << "1 \n";
+	}
+
+	if (key == GLFW_KEY_2 && action == GLFW_PRESS){
+		cMode=cameraModeReconstruct; std::cout << "2 \n";
+	}
 }
 
 //Allows you to resize the window. 

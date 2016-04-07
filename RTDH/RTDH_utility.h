@@ -21,6 +21,13 @@ struct reconParameters{
 	float rec_dist;	//Reconstruction distance
 };
 
+enum cameraMode{
+	cameraModeVideo,
+	cameraModeReconstruct
+};
+
+extern cameraMode cMode=cameraModeVideo;
+
 // Used for the first lines of the error log
 void printTime(FILE* filePtr);
 
