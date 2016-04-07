@@ -257,9 +257,17 @@ int main(){
 	float *vbo_mapped_pointer;
 	
 	size_t num_bytes;
-
+			// Measure frametime
+		double frameTime = 0.0;
+		int fps = 1;
+		int fps_prev = 1;
+		int framecounter = 1;
+		std::string wtitle;
 	//Start the main loop
 	while(!glfwWindowShouldClose(window)){
+
+		glfwSetTime(0.0);
+
 		//Fetch a frame
 		frame=apiController.GetFrame();
 		if(	!SP_ISNULL( frame) )
@@ -272,66 +280,73 @@ int main(){
 				checkCudaErrors(cudaMemcpy(d_recorded_hologram_uchar,image,
 										sizeof(unsigned char)*M*N,
 										cudaMemcpyHostToDevice));
-				//
+
+				//Convert the image to a complex format.
 				launch_unsignedChar2cufftComplex(d_recorded_hologram,
 												 d_recorded_hologram_uchar,
 												 M,N);
+				//Map the openGL resource object so we can modify it
+				checkCudaErrors(cudaGraphicsMapResources(1, &cuda_vbo_resource, 0));
+				checkCudaErrors(cudaGraphicsResourceGetMappedPointer(	(void **)&vbo_mapped_pointer, 
+																			&num_bytes, cuda_vbo_resource));
 
-
+				//Hologram Reconstruction
 				if (cMode == cameraModeReconstruct){
 						//Multiply with (checkerboarded) chirp function
 						launch_matrixMulComplexPointw(d_chirp, d_recorded_hologram, d_propagated,M,N);
 						checkCudaErrors(cudaGetLastError());
-						std::cout << "Reconstruct \n";
 						//FFT
 						result = cufftExecC2C(plan,d_propagated, d_propagated, CUFFT_FORWARD);
 						if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
 						
-						//Write to openGL object
-
-						checkCudaErrors(cudaGraphicsMapResources(1, &cuda_vbo_resource, 0));
-						checkCudaErrors(cudaGraphicsResourceGetMappedPointer(	(void **)&vbo_mapped_pointer, 
-																			&num_bytes, cuda_vbo_resource));
+						//Write to openGL object	
 						launch_cufftComplex2MagnitudeF(vbo_mapped_pointer, d_propagated,1/(sqrt((float)M*(float)N)), M, N);
 						checkCudaErrors(cudaGetLastError());
-						checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_vbo_resource, 0));	
 				}
 				else if(cMode == cameraModeVideo){	
-						checkCudaErrors(cudaGraphicsMapResources(1, &cuda_vbo_resource, 0));
-						checkCudaErrors(cudaGraphicsResourceGetMappedPointer(	(void **)&vbo_mapped_pointer, 
-																			&num_bytes, cuda_vbo_resource));
+						//Just write the image to the resource
 						launch_cufftComplex2MagnitudeF(vbo_mapped_pointer, d_recorded_hologram, 1.0, M, N);
 						checkCudaErrors(cudaGetLastError());	
-					    // unmap buffer object
-						checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_vbo_resource, 0));	
-						std::cout << "Video \n";
 				}
 				else if (cMode == cameraModeFFT){
-						launch_checkerBoard(d_recorded_hologram,M,N); 	
+						//FFT shift
+						launch_checkerBoard(d_recorded_hologram,M,N); 
 
+						//FFT
 						result = cufftExecC2C(plan,d_recorded_hologram, d_recorded_hologram, CUFFT_FORWARD);
 						if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
-						checkCudaErrors(cudaGraphicsMapResources(1, &cuda_vbo_resource, 0));
-						checkCudaErrors(cudaGraphicsResourceGetMappedPointer(	(void **)&vbo_mapped_pointer, 
-																			&num_bytes, cuda_vbo_resource));
+
 						launch_cufftComplex2MagnitudeF(vbo_mapped_pointer, d_recorded_hologram, 1.0/sqrt((float)M*(float)N), M, N);
-						checkCudaErrors(cudaGetLastError());
-										// unmap buffer object
-						checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_vbo_resource, 0));	
-						std::cout << "FFT \n";
+						checkCudaErrors(cudaGetLastError());					
 				}
-
+				checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_vbo_resource, 0));	
 				
-				//Draw everything, see if keys were pressed.
+				//Draw everything
 				glDrawArrays(GL_POINTS, 0, (unsigned int)N*(unsigned int)M);
-
 				glfwSwapBuffers(window);
+
+				//Check for keypresses
 				glfwPollEvents();
 			}
 		}
-
+		//Requeue the frame so we can gather more images
 		apiController.QueueFrame(frame);
+
+		frameTime = glfwGetTime();
+		glfwSetTime(0.0);
+		fps_prev = fps;
+		fps = (int)(0.5*(1. / frameTime + (float)fps_prev));
+
+		//Update FPS every 15 frames
+		framecounter += 1;
+		if (framecounter == 15){
+			framecounter = 1;
+			wtitle = std::to_string(fps);
+			glfwSetWindowTitle(window, wtitle.c_str());
+		}
 	}
+
+
 	apiController.StopContinuousImageAcquisition();
 
 	//Export the last reconstructed frame. 
