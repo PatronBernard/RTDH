@@ -1,6 +1,6 @@
 #include "RTDH_GLFW.h"
 
-#include "cameraMode.h"
+#include "globals.h"
 //Initialize GLFW, make a window with the right size and initialize GLEW
 GLFWwindow* initGLFW(int width, int height){
 
@@ -19,8 +19,6 @@ GLFWwindow* initGLFW(int width, int height){
 		exit(EXIT_FAILURE);
 	}
 	glfwMakeContextCurrent(window);
-	//Multisampling, not sure if it actually works
-	//glfwWindowHint(GLFW_SAMPLES,16);
 
 	//VSYNC
 	glfwSwapInterval(1);
@@ -42,18 +40,28 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 {
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS){
 		glfwSetWindowShouldClose(window, GL_TRUE);
+		std::cout << "Exiting... \n";
 	}
 	if (key == GLFW_KEY_1 && action == GLFW_PRESS){
-		cMode=cameraModeReconstruct; //std::cout << "Reconstruct Mode \n";
+		cMode=cameraModeReconstruct; 
+		std::cout << "Fresnell Reconstruction \n";
 	}
 
 	if (key == GLFW_KEY_2 && action == GLFW_PRESS){
-		cMode=cameraModeVideo; //std::cout << "Video Mode \n";
+		cMode=cameraModeVideo; 
+		std::cout << "Video \n";
 	}
 
 	if (key == GLFW_KEY_3 && action == GLFW_PRESS){
-		cMode=cameraModeFFT; //std::cout << "FFT Mode \n";
+		cMode=cameraModeFFT; 
+		std::cout << "FFT \n";
 	}
+	
+	if (key == GLFW_KEY_R && action == GLFW_PRESS){
+		storeCurrentFrame=true;
+		std::cout << "Recorded a frame. \n";
+	}
+
 }
 
 //Allows you to resize the window. 

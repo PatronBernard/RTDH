@@ -256,7 +256,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApiController.h" />
-    <ClInclude Include="cameraMode.h" />
+    <ClInclude Include="globals.h" />
     <ClInclude Include="cuFFT_helper_functions.h" />
     <ClInclude Include="FrameObserver.h" />
     <ClInclude Include="kernels.h" />
@@ -268,7 +268,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ApiController.cpp" />
-    <ClCompile Include="cameraMode.cpp" />
+    <ClCompile Include="globals.cpp" />
     <ClCompile Include="cuFFT_helper_functions.cpp" />
     <ClCompile Include="FrameObserver.cpp" />
     <ClCompile Include="LoadSaveSettings.cpp" />
@@ -282,7 +282,9 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <None Include="vertex_src.glsl" />
   </ItemGroup>
   <ItemGroup>
-    <Xml Include="CameraSettings.xml" />
+    <Xml Include="CameraSettings.xml">
+      <SubType>Designer</SubType>
+    </Xml>
   </ItemGroup>
   <ItemGroup>
     <Text Include="parameters.txt" />

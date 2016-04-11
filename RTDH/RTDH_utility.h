@@ -48,4 +48,8 @@ void construct_chirp(Complex* h_chirp, int M, int N, float lambda, float rec_dis
 
 //Export complex data, first the real part, then the imaginary part in 4 byte-floats.
 void export_complex_data(const char* inputfile, Complex* data,const int& elements_amount);
+
+void computeFPS();
+
+void printConsoleInfo();
 #endif

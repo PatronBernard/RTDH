@@ -1,8 +1,5 @@
 //Various utility functions not relating to CUDA/GLFW/cuFFT
-
 #include "RTDH_utility.h"
-
-
 // Used for the first lines of the error log
 void printTime(FILE* filePtr){
 	char text[100];
@@ -247,3 +244,7 @@ void export_complex_data(const char* inputfile, Complex* data,const int& element
 		exit(EXIT_FAILURE);
 	}
 }
+
+void printConsoleInfo(){
+	std::cout << "Available modes: \n 1 - Fresnell Reconstruction - Magnitude (default) \n 2 - Video \n 3 - FFT \n";
+};

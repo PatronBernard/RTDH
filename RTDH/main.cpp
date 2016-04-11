@@ -28,7 +28,7 @@
 
 //Other
 #include <iostream>
-#include "cameraMode.h"
+#include "globals.h"
 
 //GLFW
 #include <GLFW\glfw3.h>
@@ -36,6 +36,7 @@
 //Vimba stuff
 #include "ApiController.h"
 #include "LoadSaveSettings.h"
+
 
 #define PI	3.1415926535897932384626433832795028841971693993751058209749
 #define PI2 1.570796326794896619231321691639751442098584699687552910487
@@ -46,11 +47,11 @@ int main(){
 	//Redirect stderror to log.txt.
 	FILE* logfile = freopen("log.txt", "w", stderr);
 	printTime(logfile);
-
+	
 	//Initialize the Vimba API and print some info.
 	AVT::VmbAPI::Examples::ApiController apiController;
 	std::cout << "Vimba Version V " << apiController.GetVersion() << "\n";
-	
+	printConsoleInfo();
 	//Start the API
 	VmbErrorType vmb_err = VmbErrorSuccess;
 	vmb_err = apiController.StartUp();
@@ -127,7 +128,8 @@ int main(){
 	//Search for CUDA devices and pick the best-suited one. 
 	findCUDAGLDevices();
 
-	//Allocate and set up the chirp-function, copy it to the GPU memory.
+	//Allocate and set up the chirp-function, copy it to the GPU memory. Also checkerboard it 
+	// so we don't have to do that in the main loop.
 	Complex* h_chirp = (Complex*)malloc(sizeof(Complex)*N*M);
 	if (h_chirp == NULL){ printError(); exit(EXIT_FAILURE); }
 
@@ -145,13 +147,14 @@ int main(){
 	checkCudaErrors(cudaGetLastError());
 
 
+	//Allocate the hologram on the GPU
 
-	//Copy the hologram to the GPU
 	Complex* d_recorded_hologram;
 	checkCudaErrors(cudaMalloc((void**)&d_recorded_hologram, sizeof(Complex)*M*N));
-
-	//checkCudaErrors(cudaMemcpy(d_recorded_hologram,h_recorded_hologram,sizeof(Complex)*parameters.M*parameters.N,cudaMemcpyHostToDevice));
 	
+	Complex* d_stored_hologram;
+	checkCudaErrors(cudaMalloc((void**)&d_stored_hologram, sizeof(Complex)*M*N));
+
 	unsigned char* d_recorded_hologram_uchar;
 	checkCudaErrors(cudaMalloc((void**)&d_recorded_hologram_uchar,sizeof(unsigned char)*M*N));
 
@@ -225,6 +228,7 @@ int main(){
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	checkGLError(glGetError());
 
+	//Register it as a CUDA graphics resource
 	cudaGraphicsResource *cuda_vbo_resource;
 	checkCudaErrors(cudaGraphicsGLRegisterBuffer(&cuda_vbo_resource, vbo[1], cudaGraphicsMapFlagsWriteDiscard));
 
@@ -257,17 +261,22 @@ int main(){
 	float *vbo_mapped_pointer;
 	
 	size_t num_bytes;
-			// Measure frametime
-		double frameTime = 0.0;
-		int fps = 1;
-		int fps_prev = 1;
-		int framecounter = 1;
-		std::string wtitle;
+
+	// Measure frametime and average it
+	double frameTime = 0.0;
+	int frameCounter = 0;
+	//Number of samples
+	int frameLimit = 5;
+	//Accumulator
+	float totalFrameTime=0.0;
+
+	float averageFrametime = 0.0;
+	//std::string wtitle;
+	char wtitle[1024];
+
 	//Start the main loop
-	while(!glfwWindowShouldClose(window)){
-
-		glfwSetTime(0.0);
-
+	glfwSetTime(0.0);
+	while(!glfwWindowShouldClose(window)){	
 		//Fetch a frame
 		frame=apiController.GetFrame();
 		if(	!SP_ISNULL( frame) )
@@ -275,6 +284,10 @@ int main(){
 			frame->GetReceiveStatus(eReceiveStatus);
 			//If it is not NULL or incompletem, process it.
 			if(eReceiveStatus==VmbFrameStatusComplete){
+				//Start measuring time.
+				frameTime = glfwGetTime();
+				glfwSetTime(0.0);
+
 				frame->GetImage(image);
 				//Copy to device
 				checkCudaErrors(cudaMemcpy(d_recorded_hologram_uchar,image,
@@ -299,6 +312,14 @@ int main(){
 						result = cufftExecC2C(plan,d_propagated, d_propagated, CUFFT_FORWARD);
 						if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
 						
+						//If R was pressed, we store this frame. 
+						if (storeCurrentFrame){
+							storeCurrentFrame=false;
+							launch_unsignedChar2cufftComplex(d_stored_hologram,
+												 d_recorded_hologram_uchar,
+												 M,N);
+						}
+
 						//Write to openGL object	
 						launch_cufftComplex2MagnitudeF(vbo_mapped_pointer, d_propagated,1/(sqrt((float)M*(float)N)), M, N);
 						checkCudaErrors(cudaGetLastError());
@@ -317,6 +338,8 @@ int main(){
 						if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
 
 						launch_cufftComplex2MagnitudeF(vbo_mapped_pointer, d_recorded_hologram, 1.0/sqrt((float)M*(float)N), M, N);
+						//launch_cufftComplex2PhaseF(vbo_mapped_pointer, d_recorded_hologram, 1./PI, M, N);
+
 						checkCudaErrors(cudaGetLastError());					
 				}
 				checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_vbo_resource, 0));	
@@ -324,26 +347,39 @@ int main(){
 				//Draw everything
 				glDrawArrays(GL_POINTS, 0, (unsigned int)N*(unsigned int)M);
 				glfwSwapBuffers(window);
-
+				
 				//Check for keypresses
 				glfwPollEvents();
+
+
+				//Calculate the average frametime
+				totalFrameTime+=frameTime;
+				frameCounter++;
+				if (frameCounter==frameLimit){
+					frameCounter=0;
+					averageFrametime=totalFrameTime/frameLimit;
+					totalFrameTime=0.0;
+					sprintf(wtitle,"FPS: %.3f    Frametime: %.5fs",(int)1/averageFrametime,averageFrametime);		
+					glfwSetWindowTitle(window, wtitle);							
+				}								
+				
 			}
 		}
 		//Requeue the frame so we can gather more images
 		apiController.QueueFrame(frame);
 
-		frameTime = glfwGetTime();
-		glfwSetTime(0.0);
-		fps_prev = fps;
-		fps = (int)(0.5*(1. / frameTime + (float)fps_prev));
-
+		checkCudaErrors(cudaThreadSynchronize());
+		//
+		
+		//glfwSetTime(0.0);
+		//fps_prev = fps;
+		//fps = (int)(0.5*(1. / frameTime + (float)fps_prev));
+		//Sleep(1000);
+		
+		
+		//std::cout<< avgFPS << "\n";
 		//Update FPS every 15 frames
-		framecounter += 1;
-		if (framecounter == 15){
-			framecounter = 1;
-			wtitle = std::to_string(fps);
-			glfwSetWindowTitle(window, wtitle.c_str());
-		}
+		//framecounter += 1;
 	}
 
 

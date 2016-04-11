@@ -45,7 +45,7 @@
     <ClInclude Include="ApiController.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="cameraMode.h">
+    <ClInclude Include="globals.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>
@@ -74,7 +74,7 @@
     <ClCompile Include="FrameObserver.cpp">
       <Filter>Resources</Filter>
     </ClCompile>
-    <ClCompile Include="cameraMode.cpp">
+    <ClCompile Include="globals.cpp">
       <Filter>Resources</Filter>
     </ClCompile>
   </ItemGroup>

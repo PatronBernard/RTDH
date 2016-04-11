@@ -16,6 +16,15 @@ __global__ void cufftComplex2MagnitudeF(float* vbo_mapped_pointer, Complex *z, f
 	}
 };
 
+__global__ void cufftComplex2PhaseF(float* vbo_mapped_pointer, Complex *z, float scalingFactor, const int M, const int N){
+	unsigned int i = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int j = blockIdx.y*blockDim.y + threadIdx.y;
+	if (i < M && j < N){
+	float phase = atan2(z[i*N + j].y,z[i*N + j].x);
+	vbo_mapped_pointer[i*N + j] = phase*scalingFactor; 
+	}
+};
+
 __global__ void matrixMulComplexPointw(Complex* A, Complex* B, Complex* C, int M, int N){
 	unsigned int i = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int j = blockIdx.y*blockDim.y + threadIdx.y;
@@ -59,6 +68,15 @@ void launch_cufftComplex2MagnitudeF(float* vbo_mapped_pointer, Complex *z,float 
 	//I added the +1 because it might round down which can mean that not all pixels are processed in each kernel. 
 	dim3 grid((unsigned int)M / block.x+1, (unsigned int)N / block.y+1, 1);
 	cufftComplex2MagnitudeF<<<grid, block>>>(vbo_mapped_pointer, z, scalingFactor, M, N);
+}  
+
+extern "C"
+void launch_cufftComplex2PhaseF(float* vbo_mapped_pointer, Complex *z,float scalingFactor, const int M, const int N){
+	//Set up the grid
+	dim3 block(16, 16, 1);
+	//I added the +1 because it might round down which can mean that not all pixels are processed in each kernel. 
+	dim3 grid((unsigned int)M / block.x+1, (unsigned int)N / block.y+1, 1);
+	cufftComplex2PhaseF<<<grid, block>>>(vbo_mapped_pointer, z, scalingFactor, M, N);
 }  
 
 extern "C"

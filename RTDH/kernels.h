@@ -9,6 +9,8 @@ typedef float2 Complex;
 
 extern "C" void launch_cufftComplex2MagnitudeF(float* vbo_mapped_pointer, Complex *z,
 											   float scalingFactor, const int M, const int N);
+extern "C" void launch_cufftComplex2PhaseF(float* vbo_mapped_pointer, Complex *z,
+											   float scalingFactor, const int M, const int N);
 extern "C" void launch_checkerBoard(Complex* A, int M, int N); 
 extern "C" void launch_matrixMulComplexPointw(Complex* A, Complex* B, Complex* C, int M, int N);
 extern "C" void launch_unsignedChar2cufftComplex(Complex* z, unsigned char *A, int M, int N);
