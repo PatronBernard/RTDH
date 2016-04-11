@@ -152,8 +152,8 @@ int main(){
 	Complex* d_recorded_hologram;
 	checkCudaErrors(cudaMalloc((void**)&d_recorded_hologram, sizeof(Complex)*M*N));
 	
-	Complex* d_stored_hologram;
-	checkCudaErrors(cudaMalloc((void**)&d_stored_hologram, sizeof(Complex)*M*N));
+	Complex* d_stored_frame;
+	checkCudaErrors(cudaMalloc((void**)&d_stored_frame, sizeof(Complex)*M*N));
 
 	unsigned char* d_recorded_hologram_uchar;
 	checkCudaErrors(cudaMalloc((void**)&d_recorded_hologram_uchar,sizeof(unsigned char)*M*N));
@@ -256,7 +256,6 @@ int main(){
 	apiController.StartContinuousImageAcquisition(strCameraID);
 	AVT::VmbAPI::FramePtr frame;
 	VmbUchar_t *image;
-	char c;
 	VmbFrameStatusType eReceiveStatus;
 	float *vbo_mapped_pointer;
 	
@@ -268,9 +267,9 @@ int main(){
 	//Number of samples
 	int frameLimit = 5;
 	//Accumulator
-	float totalFrameTime=0.0;
+	double totalFrameTime=0.0;
 
-	float averageFrametime = 0.0;
+	double averageFrametime = 0.0;
 	//std::string wtitle;
 	char wtitle[1024];
 
@@ -298,6 +297,15 @@ int main(){
 				launch_unsignedChar2cufftComplex(d_recorded_hologram,
 												 d_recorded_hologram_uchar,
 												 M,N);
+
+				//If R was pressed, we store this frame. 
+				if (storeCurrentFrame){
+					storeCurrentFrame=false;
+					launch_unsignedChar2cufftComplex(d_stored_frame,
+										 d_recorded_hologram_uchar,
+										 M,N);
+				}
+
 				//Map the openGL resource object so we can modify it
 				checkCudaErrors(cudaGraphicsMapResources(1, &cuda_vbo_resource, 0));
 				checkCudaErrors(cudaGraphicsResourceGetMappedPointer(	(void **)&vbo_mapped_pointer, 
@@ -312,16 +320,13 @@ int main(){
 						result = cufftExecC2C(plan,d_propagated, d_propagated, CUFFT_FORWARD);
 						if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
 						
-						//If R was pressed, we store this frame. 
-						if (storeCurrentFrame){
-							storeCurrentFrame=false;
-							launch_unsignedChar2cufftComplex(d_stored_hologram,
-												 d_recorded_hologram_uchar,
-												 M,N);
-						}
-
 						//Write to openGL object	
-						launch_cufftComplex2MagnitudeF(vbo_mapped_pointer, d_propagated,1/(sqrt((float)M*(float)N)), M, N);
+						if (dMode==displayModeMagnitude){
+							launch_cufftComplex2MagnitudeF(vbo_mapped_pointer, d_propagated,1/(sqrt((float)M*(float)N)), M, N);
+						}
+						else if (dMode==displayModePhase){
+							launch_cufftComplex2PhaseF(vbo_mapped_pointer, d_propagated,1./PI, M, N);
+						}
 						checkCudaErrors(cudaGetLastError());
 				}
 				else if(cMode == cameraModeVideo){	
@@ -337,11 +342,20 @@ int main(){
 						result = cufftExecC2C(plan,d_recorded_hologram, d_recorded_hologram, CUFFT_FORWARD);
 						if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
 
-						launch_cufftComplex2MagnitudeF(vbo_mapped_pointer, d_recorded_hologram, 1.0/sqrt((float)M*(float)N), M, N);
-						//launch_cufftComplex2PhaseF(vbo_mapped_pointer, d_recorded_hologram, 1./PI, M, N);
-
-						checkCudaErrors(cudaGetLastError());					
+						//Write to openGL object	
+						if (dMode==displayModeMagnitude){
+							launch_cufftComplex2MagnitudeF(vbo_mapped_pointer, d_recorded_hologram,1/(sqrt((float)M*(float)N)), M, N);
+						}
+						else if (dMode==displayModePhase){
+							launch_cufftComplex2PhaseF(vbo_mapped_pointer, d_recorded_hologram,1./PI, M, N);
+						}
+						checkCudaErrors(cudaGetLastError());		
 				}
+				else if (cMode == cameraModeViewStoredFrame){
+					//In this case we just display the stored frame.
+					launch_cufftComplex2MagnitudeF(vbo_mapped_pointer, d_stored_frame, 1.0, M, N);
+				}
+
 				checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_vbo_resource, 0));	
 				
 				//Draw everything

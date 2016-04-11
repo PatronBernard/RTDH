@@ -59,9 +59,29 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	
 	if (key == GLFW_KEY_R && action == GLFW_PRESS){
 		storeCurrentFrame=true;
-		std::cout << "Recorded a frame. \n";
+		std::cout << "Stored a frame. \n";
+	}
+	
+	if (key == GLFW_KEY_V && action == GLFW_PRESS){
+		cMode=cameraModeViewStoredFrame;
+		std::cout << "Viewing stored frame. \n";
 	}
 
+	if (key == GLFW_KEY_M && action == GLFW_PRESS){
+		if (cMode==cameraModeReconstruct | cMode==cameraModeFFT)
+		{
+			dMode=displayModeMagnitude;
+			std::cout << "Displaying complex magnitude. \n";
+		}	
+	}
+
+	if (key == GLFW_KEY_P && action == GLFW_PRESS){
+		if (cMode==cameraModeReconstruct | cMode==cameraModeFFT)
+		{
+			dMode=displayModePhase;
+			std::cout << "Displaying complex phase. \n";
+		}
+	}
 }
 
 //Allows you to resize the window. 

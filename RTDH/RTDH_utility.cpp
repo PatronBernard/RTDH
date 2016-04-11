@@ -246,5 +246,10 @@ void export_complex_data(const char* inputfile, Complex* data,const int& element
 }
 
 void printConsoleInfo(){
-	std::cout << "Available modes: \n 1 - Fresnell Reconstruction - Magnitude (default) \n 2 - Video \n 3 - FFT \n";
+	std::cout << "Available modes: \n 1 - Fresnell Reconstruction - Magnitude (default) \n 2 - Video \n 3 - FFT \n \n";
+	std::cout << "Additional features: \n";
+	std::cout << "R - Store current frame \n";
+	std::cout << "V - View last stored frame \n";
+	std::cout << "M - Display complex magnitude. \n";
+	std::cout << "P - Display complex phase \n";
 };

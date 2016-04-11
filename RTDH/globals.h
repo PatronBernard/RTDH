@@ -3,9 +3,16 @@
 enum cameraMode{
 	cameraModeVideo,
 	cameraModeReconstruct,
-	cameraModeFFT
+	cameraModeFFT,
+	cameraModeViewStoredFrame
+};
+
+enum displayMode{
+	displayModeMagnitude, 
+	displayModePhase
 };
 
 extern cameraMode cMode;
+extern displayMode dMode;
 extern bool storeCurrentFrame;
 #endif
