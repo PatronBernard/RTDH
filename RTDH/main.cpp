@@ -35,7 +35,7 @@
 #include "ApiController.h"
 #include "LoadSaveSettings.h"
 
-//#include "paramgl.h"
+#include "paramgl.h"
 
 
 
@@ -275,21 +275,21 @@ int main(){
 	char wtitle[1024];
 
 	//Parameter test
-	//ParamListGL *params;
+	int numDisplayedSlices;
+	ParamListGL *params;
+	params = new ParamListGL("test'");
+    params->AddParam(new Param<int>("displayed slices", numDisplayedSlices, 0, 256, 1, &numDisplayedSlices));
 
 	//Start the main loop
 	glfwSetTime(0.0);
-	while(!glfwWindowShouldClose(window)){	
-
-		/*
-		glDisable(GL_DEPTH_TEST);
-        glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO); // invert color
-        glEnable(GL_BLEND);
-        params->Render(0, 0);
-        glDisable(GL_BLEND);
-        glEnable(GL_DEPTH_TEST);
-		*/
-
+	while(!glfwWindowShouldClose(window)){		
+		//glDisable(GL_DEPTH_TEST);
+        //glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO); // invert color
+        //glEnable(GL_BLEND);
+        //params->Render(0, 0);
+        //glDisable(GL_BLEND);
+        //glEnable(GL_DEPTH_TEST);
+		
 		//Fetch a frame
 		frame=apiController.GetFrame();
 		if(	!SP_ISNULL( frame) )
@@ -443,5 +443,5 @@ int main(){
 	fclose(logfile);
 	
 	return 0;
-};
+}
 
