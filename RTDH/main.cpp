@@ -35,7 +35,7 @@
 #include "ApiController.h"
 #include "LoadSaveSettings.h"
 
-#include "paramgl.h"
+//#include "paramgl.h"
 
 
 
@@ -275,7 +275,7 @@ int main(){
 	char wtitle[1024];
 
 	//Parameter test
-	ParamListGL *params;
+	//ParamListGL *params;
 
 	//Start the main loop
 	glfwSetTime(0.0);
