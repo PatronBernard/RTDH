@@ -351,6 +351,7 @@ int main(){
 						}
 						checkCudaErrors(cudaGetLastError());		
 				}
+				//Note: make this work with every mode? 
 				else if (cMode == cameraModeViewStoredFrame){
 					//In this case we just display the stored frame.
 					launch_cufftComplex2MagnitudeF(vbo_mapped_pointer, d_stored_frame, 1.0, M, N);
