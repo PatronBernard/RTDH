@@ -1,6 +1,6 @@
 #include "RTDH_GLFW.h"
-
 #include "globals.h"
+
 //Initialize GLFW, make a window with the right size and initialize GLEW
 GLFWwindow* initGLFW(int width, int height){
 
@@ -68,7 +68,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	}
 
 	if (key == GLFW_KEY_M && action == GLFW_PRESS){
-		if (cMode==cameraModeReconstruct | cMode==cameraModeFFT)
+		if ((cMode==cameraModeReconstruct) | (cMode==cameraModeFFT))
 		{
 			dMode=displayModeMagnitude;
 			std::cout << "Displaying complex magnitude. \n";
@@ -76,7 +76,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	}
 
 	if (key == GLFW_KEY_P && action == GLFW_PRESS){
-		if (cMode==cameraModeReconstruct | cMode==cameraModeFFT)
+		if ((cMode==cameraModeReconstruct) | (cMode==cameraModeFFT))
 		{
 			dMode=displayModePhase;
 			std::cout << "Displaying complex phase. \n";

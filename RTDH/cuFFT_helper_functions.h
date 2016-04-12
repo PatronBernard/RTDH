@@ -4,7 +4,7 @@
 #ifndef CUFFT_HELPER_FUNCTIONS_H
 #define CUFFT_HELPER_FUNCTIONS_H
 
-#include "cufftXt.h"
+#include <cufftXt.h>
 
 char* cufftStrError(cufftResult_t result);
 

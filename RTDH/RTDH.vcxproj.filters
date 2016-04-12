@@ -48,6 +48,24 @@
     <ClInclude Include="globals.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="RTDH_helper_cuda.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="paramgl.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="param.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="freeglut_ext.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="freeglut_std.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="freeglut.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RTDH_CUDA.cpp">

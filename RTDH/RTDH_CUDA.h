@@ -3,8 +3,8 @@
 
 #include <GL/glew.h>
 #include <cuda_gl_interop.h>
-#include "cuda_runtime.h"
-#include "helper_cuda.h"
+#include <cuda_runtime.h>
+#include "RTDH_helper_cuda.h"
 #include "cuFFT_helper_functions.h"
 
 typedef float2 Complex;

@@ -10,21 +10,19 @@
 #include "glm/gtc/matrix_transform.hpp"
 
 //CUDA
-#include "cuda_runtime.h"
+#include <cuda_runtime.h>
 #include "device_launch_parameters.h"
 #include "kernels.h"
-
-//Project specific includes
 #include <cuda_gl_interop.h>//Visualization
-#include "cufftXt.h"		//CUDA FFT
-#include "helper_cuda.h"	//heckCudaErrors
+#include <cufftXt.h>		//CUDA FFT
 #include <cuda_runtime.h>
 
+#include "RTDH_helper_cuda.h"	//heckCudaErrors
 #include "RTDH_utility.h"	
 #include "RTDH_GLFW.h"
 #include "RTDH_CUDA.h"
 
-#include "ListFeatures\Source\ListFeatures.h"
+//#include "ListFeatures\Source\ListFeatures.h"
 
 //Other
 #include <iostream>
@@ -36,6 +34,9 @@
 //Vimba stuff
 #include "ApiController.h"
 #include "LoadSaveSettings.h"
+
+#include "paramgl.h"
+
 
 
 #define PI	3.1415926535897932384626433832795028841971693993751058209749
@@ -273,9 +274,22 @@ int main(){
 	//std::string wtitle;
 	char wtitle[1024];
 
+	//Parameter test
+	ParamListGL *params;
+
 	//Start the main loop
 	glfwSetTime(0.0);
 	while(!glfwWindowShouldClose(window)){	
+
+		/*
+		glDisable(GL_DEPTH_TEST);
+        glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO); // invert color
+        glEnable(GL_BLEND);
+        params->Render(0, 0);
+        glDisable(GL_BLEND);
+        glEnable(GL_DEPTH_TEST);
+		*/
+
 		//Fetch a frame
 		frame=apiController.GetFrame();
 		if(	!SP_ISNULL( frame) )

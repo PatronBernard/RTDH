@@ -95,6 +95,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <ExcludePath>$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSDK_IncludePath);$(MSBuildToolsPath32);$(VCInstallDir)atlmfc\lib;$(VCInstallDir)lib</ExcludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -115,7 +116,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <AdditionalDependencies>VimbaImageTransform.lib;VimbaCPP.lib;Release\Win32\glew32s.lib;opengl32.lib;glfw3.lib;cufft.lib;tinyxml.lib;cudart.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\Program Files\Allied Vision\Vimba_2.0\VimbaImageTransform\Lib\$(Platform);C:\glew-1.13.0\lib;C:\glfw-3.1.2.bin.WIN32\lib-vc2012;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\lib\Win32;$(VIMBA_HOME)\VimbaCPP\Lib\Win$(PlatformArchitecture);$(VIMBA_HOME)\ThirdParty\TinyXML\Lib\Win$(PlatformArchitecture);C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\ProgramData\NVIDIA Corporation\CUDA Samples\v7.5\common\lib\x64;C:\Program Files\Allied Vision\Vimba_2.0\VimbaImageTransform\Lib\$(Platform);C:\glew-1.13.0\lib;C:\glfw-3.1.2.bin.WIN32\lib-vc2012;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\lib\Win32;$(VIMBA_HOME)\VimbaCPP\Lib\Win$(PlatformArchitecture);$(VIMBA_HOME)\ThirdParty\TinyXML\Lib\Win$(PlatformArchitecture);C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>echo copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
@@ -256,9 +257,15 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApiController.h" />
+    <ClInclude Include="freeglut.h" />
+    <ClInclude Include="freeglut_ext.h" />
+    <ClInclude Include="freeglut_std.h" />
     <ClInclude Include="globals.h" />
     <ClInclude Include="cuFFT_helper_functions.h" />
     <ClInclude Include="FrameObserver.h" />
+    <ClInclude Include="param.h" />
+    <ClInclude Include="paramgl.h" />
+    <ClInclude Include="RTDH_helper_cuda.h" />
     <ClInclude Include="kernels.h" />
     <ClInclude Include="LoadSaveSettings.h" />
     <ClInclude Include="RTDH_CUDA.h" />

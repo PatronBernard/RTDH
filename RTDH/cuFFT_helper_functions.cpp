@@ -1,4 +1,4 @@
-#include "cufftXt.h"
+#include <cufftXt.h>
 
 char* cufftStrError(cufftResult_t result){
 	switch (result)
