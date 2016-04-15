@@ -15,4 +15,6 @@ extern "C" void launch_checkerBoard(Complex* A, int M, int N);
 extern "C" void launch_matrixMulComplexPointw(Complex* A, Complex* B, Complex* C, int M, int N);
 extern "C" void launch_unsignedChar2cufftComplex(Complex* z, unsigned char *A, int M, int N);
 extern "C" void launch_Modify(unsigned char *A, int M, int N);
+extern "C" void launch_addComplexPointWiseF(Complex *A, Complex *B, Complex *C, int M, int N);
+extern "C" void launch_addConstant(float* A, float c, int M, int N);
 #endif

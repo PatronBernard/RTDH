@@ -251,8 +251,6 @@ int main(){
 
 	
 	//=========================MAIN LOOP==========================
-	//Possibly n
-	GLuint projection_Handle= glGetUniformLocation(shaderprogram, "Projection");
 	
 	apiController.StartContinuousImageAcquisition(strCameraID);
 	AVT::VmbAPI::FramePtr frame;
@@ -279,6 +277,11 @@ int main(){
 	ParamListGL *params;
 	params = new ParamListGL("test'");
     params->AddParam(new Param<int>("displayed slices", numDisplayedSlices, 0, 256, 1, &numDisplayedSlices));
+
+	//Set up projection matrix 
+	//GLuint projection_Handle= glGetUniformLocation(shaderprogram, "Projection");
+	//glm::mat4 Projection = glm::ortho(-1.0,1.0,-1.0,1.0);
+	//glUniformMatrix4fv(projection_Handle, 1, GL_FALSE, &Projection[0][0]);
 
 	//Start the main loop
 	glfwSetTime(0.0);
@@ -320,6 +323,12 @@ int main(){
 										 M,N);
 				}
 
+				//For interferometry, we add the stored frame to the current one. 
+				if (addRecordedFrameToCurrent==true){
+					launch_addComplexPointWiseF(d_stored_frame,d_recorded_hologram, d_recorded_hologram, M,N);
+				}
+
+				
 				//Map the openGL resource object so we can modify it
 				checkCudaErrors(cudaGraphicsMapResources(1, &cuda_vbo_resource, 0));
 				checkCudaErrors(cudaGraphicsResourceGetMappedPointer(	(void **)&vbo_mapped_pointer, 
@@ -339,7 +348,9 @@ int main(){
 							launch_cufftComplex2MagnitudeF(vbo_mapped_pointer, d_propagated,1/(sqrt((float)M*(float)N)), M, N);
 						}
 						else if (dMode==displayModePhase){
-							launch_cufftComplex2PhaseF(vbo_mapped_pointer, d_propagated,1./PI, M, N);
+							launch_cufftComplex2PhaseF(vbo_mapped_pointer, d_propagated,0.5/PI, M, N);
+							launch_addConstant(vbo_mapped_pointer, 0.5, M, N);
+
 						}
 						checkCudaErrors(cudaGetLastError());
 				}
@@ -380,6 +391,8 @@ int main(){
 				//Check for keypresses
 				glfwPollEvents();
 
+				float ratio=width/height;
+				
 
 				//Calculate the average frametime
 				totalFrameTime+=frameTime;

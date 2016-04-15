@@ -3,7 +3,7 @@
   <ItemGroup>
     <CudaCompile Include="main.cpp" />
     <CudaCompile Include="kernels.cu">
-      <Filter>Resources</Filter>
+      <Filter>Definitions</Filter>
     </CudaCompile>
   </ItemGroup>
   <ItemGroup>
@@ -15,6 +15,9 @@
     </Filter>
     <Filter Include="Other">
       <UniqueIdentifier>{9a4f0b61-54a9-4b78-a604-c43cd5b32043}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Definitions">
+      <UniqueIdentifier>{4d66d67c-a908-41b6-85fd-9af22c360170}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -68,32 +71,32 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="RTDH_CUDA.cpp">
-      <Filter>Resources</Filter>
-    </ClCompile>
-    <ClCompile Include="LoadSaveSettings.cpp">
-      <Filter>Resources</Filter>
-    </ClCompile>
-    <ClCompile Include="RTDH_utility.cpp">
-      <Filter>Resources</Filter>
+    <ClCompile Include="ApiController.cpp">
+      <Filter>Definitions</Filter>
     </ClCompile>
     <ClCompile Include="cuFFT_helper_functions.cpp">
-      <Filter>Resources</Filter>
-    </ClCompile>
-    <ClCompile Include="RTDH_GLFW.cpp">
-      <Filter>Resources</Filter>
-    </ClCompile>
-    <ClCompile Include="RTDH_GL.cpp">
-      <Filter>Resources</Filter>
-    </ClCompile>
-    <ClCompile Include="ApiController.cpp">
-      <Filter>Resources</Filter>
+      <Filter>Definitions</Filter>
     </ClCompile>
     <ClCompile Include="FrameObserver.cpp">
-      <Filter>Resources</Filter>
+      <Filter>Definitions</Filter>
     </ClCompile>
     <ClCompile Include="globals.cpp">
-      <Filter>Resources</Filter>
+      <Filter>Definitions</Filter>
+    </ClCompile>
+    <ClCompile Include="LoadSaveSettings.cpp">
+      <Filter>Definitions</Filter>
+    </ClCompile>
+    <ClCompile Include="RTDH_CUDA.cpp">
+      <Filter>Definitions</Filter>
+    </ClCompile>
+    <ClCompile Include="RTDH_GL.cpp">
+      <Filter>Definitions</Filter>
+    </ClCompile>
+    <ClCompile Include="RTDH_GLFW.cpp">
+      <Filter>Definitions</Filter>
+    </ClCompile>
+    <ClCompile Include="RTDH_utility.cpp">
+      <Filter>Definitions</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

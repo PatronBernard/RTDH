@@ -15,4 +15,5 @@ enum displayMode{
 extern cameraMode cMode;
 extern displayMode dMode;
 extern bool storeCurrentFrame;
+extern bool addRecordedFrameToCurrent;
 #endif

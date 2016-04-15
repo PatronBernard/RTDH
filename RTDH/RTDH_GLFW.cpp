@@ -82,6 +82,22 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 			std::cout << "Displaying complex phase. \n";
 		}
 	}
+
+	if (key == GLFW_KEY_A && action == GLFW_PRESS){
+		if ((cMode==cameraModeReconstruct) | (cMode==cameraModeFFT))
+		{
+			if (addRecordedFrameToCurrent==false){
+				addRecordedFrameToCurrent=true;
+				std::cout << "Adding recorded frame to current frame: ON \n";
+			}
+			else{
+				addRecordedFrameToCurrent=false;
+				std::cout << "Adding recorded frame to current frame: OFF \n";
+			}
+		}
+	}
+
+
 }
 
 //Allows you to resize the window. 

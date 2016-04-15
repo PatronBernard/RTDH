@@ -23,6 +23,14 @@ vec3 hot(float t)
                 smoothstep(0.66,1.00,t));
 }
 
+//Hot colormap, black to red-yellow-white
+vec3 green(float t)
+{
+    return vec3(smoothstep(0.50,1.00,t),
+                smoothstep(0.00,0.50,t),
+                smoothstep(0.50,1.00,t));
+}
+
 vec3 bw(float t)
 {
 	return vec3(clamp(t,0.0,1.0)/3.0,
@@ -32,6 +40,6 @@ vec3 bw(float t)
 
 void main(void){
 	gl_Position=vec4(in_Position.x, in_Position.y,0.0f,1.0f);
-	ex_Color = hot(in_Magnitude);
+	ex_Color = green(in_Magnitude);
 	//ex_Color = bw(in_Magnitude);
 }

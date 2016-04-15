@@ -14,7 +14,7 @@
     <Enumeration Name="ExposureAuto">On</Enumeration>
     <Enumeration Name="ExposureAutoTimebase">tb200us</Enumeration>
     <Enumeration Name="ExposureMode">Timed</Enumeration>
-    <Float Name="ExposureTime">30065</Float>
+    <Float Name="ExposureTime">1065</Float>
     <Float Name="Gain">0</Float>
     <Enumeration Name="GainAuto">Off</Enumeration>
     <Float Name="Gamma">1</Float>
