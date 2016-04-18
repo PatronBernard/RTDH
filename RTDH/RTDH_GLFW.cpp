@@ -48,11 +48,16 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	}
 
 	if (key == GLFW_KEY_2 && action == GLFW_PRESS){
+		cMode=cameraModeReconstructI; 
+		std::cout << "Fresnell Reconstruction: Interferometry \n";
+	}
+
+	if (key == GLFW_KEY_3 && action == GLFW_PRESS){
 		cMode=cameraModeVideo; 
 		std::cout << "Video \n";
 	}
 
-	if (key == GLFW_KEY_3 && action == GLFW_PRESS){
+	if (key == GLFW_KEY_4 && action == GLFW_PRESS){
 		cMode=cameraModeFFT; 
 		std::cout << "FFT \n";
 	}
@@ -68,7 +73,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	}
 
 	if (key == GLFW_KEY_M && action == GLFW_PRESS){
-		if ((cMode==cameraModeReconstruct) | (cMode==cameraModeFFT))
+		if ((cMode==cameraModeReconstruct) | (cMode==cameraModeFFT) | (cMode==cameraModeViewStoredFrame))
 		{
 			dMode=displayModeMagnitude;
 			std::cout << "Displaying complex magnitude. \n";
@@ -76,15 +81,15 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	}
 
 	if (key == GLFW_KEY_P && action == GLFW_PRESS){
-		if ((cMode==cameraModeReconstruct) | (cMode==cameraModeFFT))
+		if ((cMode==cameraModeReconstruct) | (cMode==cameraModeFFT) | (cMode==cameraModeViewStoredFrame))
 		{
 			dMode=displayModePhase;
 			std::cout << "Displaying complex phase. \n";
 		}
 	}
-
-	if (key == GLFW_KEY_A && action == GLFW_PRESS){
-		if ((cMode==cameraModeReconstruct) | (cMode==cameraModeFFT))
+	/*
+	if (key == GLFW_KEY_I && action == GLFW_PRESS){
+		if ((cMode==cameraModeReconstructI) | (cMode==cameraModeFFT))
 		{
 			if (addRecordedFrameToCurrent==false){
 				addRecordedFrameToCurrent=true;
@@ -96,7 +101,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 			}
 		}
 	}
-
+	*/
 
 }
 

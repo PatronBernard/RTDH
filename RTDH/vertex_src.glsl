@@ -40,6 +40,7 @@ vec3 bw(float t)
 
 void main(void){
 	gl_Position=vec4(in_Position.x, in_Position.y,0.0f,1.0f);
-	ex_Color = green(in_Magnitude);
+	//ex_Color = green(in_Magnitude);
+	ex_Color = hot(in_Magnitude);
 	//ex_Color = bw(in_Magnitude);
 }

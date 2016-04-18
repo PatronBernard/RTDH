@@ -38,11 +38,6 @@
 #include "paramgl.h"
 
 
-
-#define PI	3.1415926535897932384626433832795028841971693993751058209749
-#define PI2 1.570796326794896619231321691639751442098584699687552910487
-
-
 int main(){
 	
 	//Redirect stderror to log.txt.
@@ -161,6 +156,9 @@ int main(){
 
 	Complex* d_propagated;
 	checkCudaErrors(cudaMalloc((void**)&d_propagated, sizeof(Complex)*M*N));
+
+	float* d_filtered_phase;
+	checkCudaErrors(cudaMalloc((void**)&d_filtered_phase, sizeof(float)*M*N));
 
 	//We'll use a vertex array object with two VBO's. The first will house the vertex positions, the second will 
 	//house the magnitude that will be calculated with a kernel. 
@@ -298,7 +296,7 @@ int main(){
 		if(	!SP_ISNULL( frame) )
         {      
 			frame->GetReceiveStatus(eReceiveStatus);
-			//If it is not NULL or incompletem, process it.
+			//If it is not NULL or incomplete, process it.
 			if(eReceiveStatus==VmbFrameStatusComplete){
 				//Start measuring time.
 				frameTime = glfwGetTime();
@@ -314,21 +312,7 @@ int main(){
 				launch_unsignedChar2cufftComplex(d_recorded_hologram,
 												 d_recorded_hologram_uchar,
 												 M,N);
-
-				//If R was pressed, we store this frame. 
-				if (storeCurrentFrame){
-					storeCurrentFrame=false;
-					launch_unsignedChar2cufftComplex(d_stored_frame,
-										 d_recorded_hologram_uchar,
-										 M,N);
-				}
-
-				//For interferometry, we add the stored frame to the current one. 
-				if (addRecordedFrameToCurrent==true){
-					launch_addComplexPointWiseF(d_stored_frame,d_recorded_hologram, d_recorded_hologram, M,N);
-				}
-
-				
+		
 				//Map the openGL resource object so we can modify it
 				checkCudaErrors(cudaGraphicsMapResources(1, &cuda_vbo_resource, 0));
 				checkCudaErrors(cudaGraphicsResourceGetMappedPointer(	(void **)&vbo_mapped_pointer, 
@@ -336,23 +320,38 @@ int main(){
 
 				//Hologram Reconstruction
 				if (cMode == cameraModeReconstruct){
-						//Multiply with (checkerboarded) chirp function
-						launch_matrixMulComplexPointw(d_chirp, d_recorded_hologram, d_propagated,M,N);
-						checkCudaErrors(cudaGetLastError());
-						//FFT
-						result = cufftExecC2C(plan,d_propagated, d_propagated, CUFFT_FORWARD);
-						if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
-						
-						//Write to openGL object	
-						if (dMode==displayModeMagnitude){
-							launch_cufftComplex2MagnitudeF(vbo_mapped_pointer, d_propagated,1/(sqrt((float)M*(float)N)), M, N);
-						}
-						else if (dMode==displayModePhase){
-							launch_cufftComplex2PhaseF(vbo_mapped_pointer, d_propagated,0.5/PI, M, N);
-							launch_addConstant(vbo_mapped_pointer, 0.5, M, N);
+					//Multiply with (checkerboarded) chirp function
+					launch_matrixMulComplexPointw(d_chirp, d_recorded_hologram, d_propagated,M,N);
+					checkCudaErrors(cudaGetLastError());
+					//FFT
+					result = cufftExecC2C(plan,d_propagated, d_propagated, CUFFT_FORWARD);
+					if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
+					
+					//Write to openGL object	
+					if (dMode==displayModeMagnitude){
+						launch_cufftComplex2MagnitudeF(vbo_mapped_pointer, d_propagated,5.0/(sqrt((float)M*(float)N)), M, N);
+					}
+					else if (dMode==displayModePhase){
+						launch_cufftComplex2PhaseF(vbo_mapped_pointer, d_propagated,0.5/PI, M, N);
+						launch_addConstant(vbo_mapped_pointer, 0.5, M, N);
+					}
+					checkCudaErrors(cudaGetLastError());
+				}
+				else if(cMode == cameraModeReconstructI){
+					//Multiply with (checkerboarded) chirp function
+					launch_matrixMulComplexPointw(d_chirp, d_recorded_hologram, d_propagated,M,N);
+					checkCudaErrors(cudaGetLastError());
+					//FFT
+					result = cufftExecC2C(plan,d_propagated, d_propagated, CUFFT_FORWARD);
+					if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
+					
+					//Calculate the phase difference and display it.
+					launch_phaseDifference(d_stored_frame, d_propagated, d_filtered_phase, 1.0, 0.0, M, N);
+					//cudaMemcpy(vbo_mapped_pointer, d_filtered_phase, sizeof(float)*M*N, cudaMemcpyDeviceToDevice);
+					launch_filterPhase(d_filtered_phase, vbo_mapped_pointer, 5, M, N);
+					launch_rescaleAndShiftF(vbo_mapped_pointer, 0.5 / PI, 0.5, M, N);
 
-						}
-						checkCudaErrors(cudaGetLastError());
+					checkCudaErrors(cudaGetLastError());
 				}
 				else if(cMode == cameraModeVideo){	
 						//Just write the image to the resource
@@ -379,7 +378,19 @@ int main(){
 				//Note: make this work with every mode? 
 				else if (cMode == cameraModeViewStoredFrame){
 					//In this case we just display the stored frame.
-					launch_cufftComplex2MagnitudeF(vbo_mapped_pointer, d_stored_frame, 1.0, M, N);
+					if (dMode==displayModeMagnitude){
+							launch_cufftComplex2MagnitudeF(vbo_mapped_pointer, d_stored_frame,1/(sqrt((float)M*(float)N)), M, N);
+						}
+						else if (dMode==displayModePhase){
+							launch_cufftComplex2PhaseF(vbo_mapped_pointer, d_stored_frame,0.5/PI, M, N);
+							launch_addConstant(vbo_mapped_pointer,0.5,M,N);
+						}
+				}
+
+				//If R was pressed, we store the last reconstructed frame.
+				if (storeCurrentFrame){
+					storeCurrentFrame=false;
+					cudaMemcpy(d_stored_frame,d_propagated,sizeof(Complex)*M*N,cudaMemcpyDeviceToDevice);
 				}
 
 				checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_vbo_resource, 0));	
