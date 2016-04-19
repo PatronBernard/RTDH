@@ -114,7 +114,7 @@ int main(){
 	read_parameters("parameters.txt", &parameters);
 	
 	//Initialize the GLFW window
-	GLFWwindow *window = initGLFW((int)N/4, (int) M/4); 
+	GLFWwindow *window = initGLFW((int)N/2, (int) M/2); 
 	//glViewport(0, 0, 512, 512);
 	
 
@@ -406,7 +406,35 @@ int main(){
 				
 				//Draw everything
 
-				
+				glViewport(0, 0, N / 4, M / 4);
+				glDrawArrays(GL_POINTS, 0, (unsigned int)N*(unsigned int)M);
+
+
+				//Multiply with (checkerboarded) chirp function
+				launch_matrixMulComplexPointw(d_chirp, d_recorded_hologram, d_propagated, M, N);
+				checkCudaErrors(cudaGetLastError());
+				//FFT
+				result = cufftExecC2C(plan, d_propagated, d_propagated, CUFFT_FORWARD);
+				if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
+
+				//Map the openGL resource object so we can modify it
+				checkCudaErrors(cudaGraphicsMapResources(1, &cuda_vbo_resource, 0));
+				checkCudaErrors(cudaGraphicsResourceGetMappedPointer((void **)&vbo_mapped_pointer,
+					&num_bytes, cuda_vbo_resource));
+
+				//Calculate the phase 1difference and display it.
+				launch_phaseDifference(d_stored_frame, d_propagated, d_filtered_phase, 1.0, 0.0, M, N);
+				//checkCudaErrors(cudaGetLastError());
+				launch_sin(d_filtered_phase, d_phase_sin, M, N);
+				//checkCudaErrors(cudaGetLastError());
+				launch_cos(d_filtered_phase, d_phase_cos, M, N);
+				//checkCudaErrors(cudaGetLastError());
+				launch_filterPhase(d_phase_sin, d_phase_cos, vbo_mapped_pointer, 5, M, N);
+				//checkCudaErrors(cudaGetLastError());
+				launch_rescaleAndShiftF(vbo_mapped_pointer, 0.5 / PI, 0.5, M, N);
+				checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_vbo_resource, 0));
+
+				glViewport(N / 4, 0, N / 4, M / 4);
 				glDrawArrays(GL_POINTS, 0, (unsigned int)N*(unsigned int)M);
 
 				//glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO); // invert color
@@ -419,9 +447,6 @@ int main(){
 				
 				//Check for keypresses
 				glfwPollEvents();
-
-
-				
 
 				//Calculate the average frametime
 				totalFrameTime+=frameTime;
