@@ -1,4 +1,4 @@
 3.450000000000000e-06 	//Horizontal pixel size
 3.450000000000000e-06 	//Vertical pixel size
 5.320000000000000e-07 	//Wavelength
-0.400			//Reconstruction distance
+0.440			//Reconstruction distance

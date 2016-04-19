@@ -90,33 +90,6 @@ __global__ void phaseDifference(Complex *A, Complex *B, float *C, float a, float
 	}
 }
 
-__global__ void filterPhase(float *A, float *B, int windowsize, int M, int N){
-	int i = blockIdx.x*blockDim.x + threadIdx.x;
-	int j = blockIdx.y*blockDim.y + threadIdx.y;
-
-	//Relative index
-	int u_lower = (int)floorf(-0.5*windowsize);
-	int u_upper = u_lower + windowsize;
-	int v_lower = (int)floorf(-0.5*windowsize);
-	int v_upper = v_lower+windowsize;
-
-	if (i < (M + u_lower) && i > u_upper && j < (N + v_lower) && j > v_upper){
-		float avg_s = 0.0;
-		float avg_c = 0.0;
-		for (int u = i+u_lower; u <= i+u_upper; u++){
-			for (int v = j+v_lower; v <= j+ v_upper; v++){
-				avg_s += sin(A[u*N + v]);
-				avg_c += cos(A[u*N + v]);
-			}
-		}	
-		B[i*N + j] = atan2f(avg_s / ((float)windowsize*windowsize), avg_c / ((float)windowsize*windowsize));
-	}
-	//else if (i < u_lower && i > (M - u_lower) && i < M &&  j < v_lower && j > (N - v_lower) && j < N){
-	//	B[i*N + j] = A[i*N + j];
-	//}
-}
-
-
 __global__ void rescaleAndShiftF(float* A, float a, float b, int M, int N){
 	int i = blockIdx.x*blockDim.x + threadIdx.x;
 	int j = blockIdx.y*blockDim.y + threadIdx.y;
@@ -124,6 +97,68 @@ __global__ void rescaleAndShiftF(float* A, float a, float b, int M, int N){
 		A[i*N + j] = a*A[i*N + j] + b;
 	}
 }
+
+__global__ void sin(float* A, float* B, int M, int N){
+	int i = blockIdx.x*blockDim.x + threadIdx.x;
+	int j = blockIdx.y*blockDim.y + threadIdx.y;
+	if (i < M && j < N){
+		B[i*N + j] = sin(A[i*N + j]);
+		
+	}
+}
+
+__global__ void cos(float* A, float* B, int M, int N){
+	int i = blockIdx.x*blockDim.x + threadIdx.x;
+	int j = blockIdx.y*blockDim.y + threadIdx.y;
+	if (i < M && j < N){
+		B[i*N + j] = cos(A[i*N + j]);
+
+	}
+}
+
+__global__ void filterPhase(float *Asin, float *Acos, float *B, int windowsize, int M, int N){
+	int i = blockIdx.x*blockDim.x + threadIdx.x;
+	int j = blockIdx.y*blockDim.y + threadIdx.y;
+
+	//Relative index
+	int u_lower = (int)floorf(-0.5*windowsize);
+	int u_upper = u_lower + windowsize;
+	int v_lower = (int)floorf(-0.5*windowsize);
+	int v_upper = v_lower + windowsize;
+
+	if (i < (M + u_lower) && i > u_upper && j < (N + v_lower) && j > v_upper){
+		float avg_s = 0.0;
+		float avg_c = 0.0;
+		for (int u = i + u_lower; u <= i + u_upper; u++){
+			for (int v = j + v_lower; v <= j + v_upper; v++){
+				avg_s += Asin[u*N + v];
+				avg_c += Acos[u*N + v];
+			}
+		}
+		B[i*N + j] = atan2f(avg_s / ((float)windowsize*windowsize), avg_c / ((float)windowsize*windowsize));
+	}
+}
+
+__global__ void constructChirp(Complex* A, 
+								float rec_dist, 
+								float lambda, 
+								float pixel_x, float pixel_y, 
+								int M, int N){
+	
+	int i = blockIdx.x*blockDim.x + threadIdx.x;
+	int j = blockIdx.y*blockDim.y + threadIdx.y;
+
+	if (i < M && j < N){
+		float a = PI / (rec_dist*lambda);
+		float ch_exp, x, y;
+		x = (float)j - (float)(N / 2.0);
+		y = (float)i - (float)(M / 2.0);
+		ch_exp = (float)pow(x*pixel_x, 2) + (float)pow(y*pixel_y, 2);
+		A[i*N + j].x = cos(a*ch_exp);
+		A[i*N + j].y = sin(a*ch_exp);
+	}
+}
+
 extern "C"
 void launch_cufftComplex2MagnitudeF(float* vbo_mapped_pointer, Complex *z, float scalingFactor, const int M, const int N){
 	//Set up the grid
@@ -192,18 +227,50 @@ void launch_phaseDifference(Complex *A, Complex *B, float *C, float a, float b, 
 	dim3 grid((unsigned int)M / block.x+1, (unsigned int)N / block.y+1, 1);
 	phaseDifference<<<grid,block>>>(A, B, C, a, b, M, N);
 };
-
+/*
 extern "C"
 void launch_filterPhase(float *A, float *B, int windowsize, int M, int N){
 	dim3 block(16, 16, 1);
 	dim3 grid((unsigned int)M / block.x + 1, (unsigned int)N / block.y + 1, 1);
 	filterPhase <<<grid, block >>>(A, B, windowsize, M, N);
 };
-
+*/
 extern "C"
 void launch_rescaleAndShiftF(float *A, float a, float b, int M, int N){
 	dim3 block(16, 16, 1);
 	dim3 grid((unsigned int)M / block.x + 1, (unsigned int)N / block.y + 1, 1);
 	rescaleAndShiftF<<<grid, block >>>(A, a, b, M, N);
 };
+
+extern "C"
+void launch_sin(float *A, float *B, int M, int N){
+	dim3 block(16, 16, 1);
+	dim3 grid((unsigned int)M / block.x + 1, (unsigned int)N / block.y + 1, 1);
+	sin <<<grid, block >>>(A, B, M, N);
+};
+
+extern "C"
+void launch_cos(float *A, float *B, int M, int N){
+	dim3 block(16, 16, 1);
+	dim3 grid((unsigned int)M / block.x + 1, (unsigned int)N / block.y + 1, 1);
+	cos<<<grid, block >>>(A, B, M, N);
+};
+
+extern "C"
+void launch_filterPhase(float *Asin, float *Acos, float *B, int windowsize, int M, int N){
+	dim3 block(16, 16, 1);
+	dim3 grid((unsigned int)M / block.x + 1, (unsigned int)N / block.y + 1, 1);
+	filterPhase <<<grid, block >>>(Asin, Acos, B, windowsize, M, N);
+};
+
+extern "C"
+void launch_constructChirp( Complex* A,
+							float rec_dist,
+							float lambda,
+							float pixel_x, float pixel_y,
+							int M, int N){
+	dim3 block(16, 16, 1);
+	dim3 grid((unsigned int)M / block.x + 1, (unsigned int)N / block.y + 1, 1);
+	constructChirp <<<grid, block >>>(A, rec_dist, lambda, pixel_x, pixel_y, M, N);
+}
 #endif

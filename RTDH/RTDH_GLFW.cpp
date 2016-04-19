@@ -107,5 +107,9 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 //Allows you to resize the window. 
 void window_size_callback(GLFWwindow* window, int width, int height){
+	//float aspect_ratio = width / height;
+	//int new_height = height;
+	//int new_width = (int)aspect_ratio * height;
+	//glfwSetWindowSize(window, new_width, new_height);
 	glViewport(0, 0, width, height);
 }

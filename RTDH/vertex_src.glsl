@@ -38,9 +38,45 @@ vec3 bw(float t)
 				clamp(t,0.0,1.0)/3.0);
 }
 
+float colormap_red(float x) {
+	if (x < 0.7) {
+		return 4.0 * x - 1.5;
+	}
+	else {
+		return -4.0 * x + 4.5;
+	}
+}
+
+float colormap_green(float x) {
+	if (x < 0.5) {
+		return 4.0 * x - 0.5;
+	}
+	else {
+		return -4.0 * x + 3.5;
+	}
+}
+
+float colormap_blue(float x) {
+	if (x < 0.3) {
+		return 4.0 * x + 0.5;
+	}
+	else {
+		return -4.0 * x + 2.5;
+	}
+}
+
+vec3 jet(float x) {
+	float r = clamp(colormap_red(x), 0.0, 1.0);
+	float g = clamp(colormap_green(x), 0.0, 1.0);
+	float b = clamp(colormap_blue(x), 0.0, 1.0);
+	return vec3(r, g, b);
+}
+
 void main(void){
 	gl_Position=vec4(in_Position.x, in_Position.y,0.0f,1.0f);
 	//ex_Color = green(in_Magnitude);
 	ex_Color = hot(in_Magnitude);
+	//ex_Color = jet(in_Magnitude);
+	//ex_Color = wheel(in_Magnitude);
 	//ex_Color = bw(in_Magnitude);
 }

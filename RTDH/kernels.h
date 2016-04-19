@@ -27,8 +27,15 @@ extern "C" void launch_addConstant(float* A, float c, int M, int N);
 extern "C" void launch_linearCombination(Complex *A, Complex *B, Complex *C,float a, float b, float c, int M, int N);
 //Pointwise calculation of a*(arg(A)-arg(B))+b
 extern "C" void launch_phaseDifference(Complex *A, Complex *B, float *C, float a, float b, int M, int N);
-
-extern "C" void launch_filterPhase(float *A, float *B, int windowsize, int M, int N);
-
+//Pointwise in-place calculation of a*A+b
 extern "C" void launch_rescaleAndShiftF(float *A, float a, float b, int M, int N);
+//Pointwise sine
+extern "C" void launch_sin(float *A, float *B, int M, int N);
+//Pointwise cosine
+extern "C" void launch_cos(float *A, float *B, int M, int N);
+//Filters the phase according to the "sincos" filter.
+extern "C" void launch_filterPhase(float *Asin, float *Acos, float*B, int windowsize, int M, int N);
+//Constructs the chirp function
+extern "C" void launch_constructChirp(Complex* A, float rec_dist, float lambda, 
+										float pixel_x, float pixel_y, int M, int N);
 #endif

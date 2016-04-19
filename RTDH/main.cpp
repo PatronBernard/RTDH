@@ -115,7 +115,8 @@ int main(){
 	
 	//Initialize the GLFW window
 	GLFWwindow *window = initGLFW((int)N/4, (int) M/4); 
-
+	//glViewport(0, 0, 512, 512);
+	
 
 	//Set a few callbacks
 	glfwSetWindowSizeCallback(window, window_size_callback);
@@ -160,6 +161,12 @@ int main(){
 	float* d_filtered_phase;
 	checkCudaErrors(cudaMalloc((void**)&d_filtered_phase, sizeof(float)*M*N));
 
+	float* d_phase_sin;
+	checkCudaErrors(cudaMalloc((void**)&d_phase_sin, sizeof(float)*M*N));
+
+	float* d_phase_cos;
+	checkCudaErrors(cudaMalloc((void**)&d_phase_cos, sizeof(float)*M*N));
+
 	//We'll use a vertex array object with two VBO's. The first will house the vertex positions, the second will 
 	//house the magnitude that will be calculated with a kernel. 
 	
@@ -184,7 +191,7 @@ int main(){
 	//Calculate the position of each vertex (one for every pixel in the image). 
 	float u, v, x, y;
 	int k = 0;
-
+	
 	
 	float *vertices = (float *) malloc(M*N * 2 * sizeof(float));
 	
@@ -260,6 +267,7 @@ int main(){
 
 	// Measure frametime and average it
 	double frameTime = 0.0;
+	double recon_time = 0.0;
 	int frameCounter = 0;
 	//Number of samples
 	int frameLimit = 5;
@@ -284,12 +292,6 @@ int main(){
 	//Start the main loop
 	glfwSetTime(0.0);
 	while(!glfwWindowShouldClose(window)){		
-		//glDisable(GL_DEPTH_TEST);
-        //glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO); // invert color
-        //glEnable(GL_BLEND);
-        //params->Render(0, 0);
-        //glDisable(GL_BLEND);
-        //glEnable(GL_DEPTH_TEST);
 		
 		//Fetch a frame
 		frame=apiController.GetFrame();
@@ -318,6 +320,8 @@ int main(){
 				checkCudaErrors(cudaGraphicsResourceGetMappedPointer(	(void **)&vbo_mapped_pointer, 
 																			&num_bytes, cuda_vbo_resource));
 
+
+
 				//Hologram Reconstruction
 				if (cMode == cameraModeReconstruct){
 					//Multiply with (checkerboarded) chirp function
@@ -345,13 +349,16 @@ int main(){
 					result = cufftExecC2C(plan,d_propagated, d_propagated, CUFFT_FORWARD);
 					if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
 					
-					//Calculate the phase difference and display it.
+					//Calculate the phase 1difference and display it.
 					launch_phaseDifference(d_stored_frame, d_propagated, d_filtered_phase, 1.0, 0.0, M, N);
-					//cudaMemcpy(vbo_mapped_pointer, d_filtered_phase, sizeof(float)*M*N, cudaMemcpyDeviceToDevice);
-					launch_filterPhase(d_filtered_phase, vbo_mapped_pointer, 5, M, N);
+					//checkCudaErrors(cudaGetLastError());
+					launch_sin(d_filtered_phase, d_phase_sin, M, N);
+					//checkCudaErrors(cudaGetLastError());
+					launch_cos(d_filtered_phase, d_phase_cos, M, N);
+					//checkCudaErrors(cudaGetLastError());
+					launch_filterPhase(d_phase_sin, d_phase_cos, vbo_mapped_pointer, 5, M, N);
+					//checkCudaErrors(cudaGetLastError());
 					launch_rescaleAndShiftF(vbo_mapped_pointer, 0.5 / PI, 0.5, M, N);
-
-					checkCudaErrors(cudaGetLastError());
 				}
 				else if(cMode == cameraModeVideo){	
 						//Just write the image to the resource
@@ -361,7 +368,7 @@ int main(){
 				else if (cMode == cameraModeFFT){
 						//FFT shift
 						launch_checkerBoard(d_recorded_hologram,M,N); 
-
+						checkCudaErrors(cudaGetLastError());
 						//FFT
 						result = cufftExecC2C(plan,d_recorded_hologram, d_recorded_hologram, CUFFT_FORWARD);
 						if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
@@ -386,6 +393,8 @@ int main(){
 							launch_addConstant(vbo_mapped_pointer,0.5,M,N);
 						}
 				}
+				//Measure the time to reconstruct a frame
+				recon_time=glfwGetTime();
 
 				//If R was pressed, we store the last reconstructed frame.
 				if (storeCurrentFrame){
@@ -396,13 +405,22 @@ int main(){
 				checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_vbo_resource, 0));	
 				
 				//Draw everything
+
+				
 				glDrawArrays(GL_POINTS, 0, (unsigned int)N*(unsigned int)M);
+
+				//glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO); // invert color
+				//glEnable(GL_BLEND);
+				//params->Render(0, 0);
+				//glDisable(GL_BLEND);
+				//checkGLError(glGetError());
+
 				glfwSwapBuffers(window);
 				
 				//Check for keypresses
 				glfwPollEvents();
 
-				float ratio=width/height;
+
 				
 
 				//Calculate the average frametime
@@ -412,7 +430,9 @@ int main(){
 					frameCounter=0;
 					averageFrametime=totalFrameTime/frameLimit;
 					totalFrameTime=0.0;
-					sprintf(wtitle,"FPS: %.3f    Frametime: %.5fs",(int)1/averageFrametime,averageFrametime);		
+					sprintf(wtitle,"FPS: %.3f    Frametime: %.5fs    Reconstruction time: %.5fs",
+							(int)1/averageFrametime,averageFrametime, recon_time);	
+
 					glfwSetWindowTitle(window, wtitle);							
 				}								
 				
@@ -420,19 +440,7 @@ int main(){
 		}
 		//Requeue the frame so we can gather more images
 		apiController.QueueFrame(frame);
-
 		checkCudaErrors(cudaThreadSynchronize());
-		//
-		
-		//glfwSetTime(0.0);
-		//fps_prev = fps;
-		//fps = (int)(0.5*(1. / frameTime + (float)fps_prev));
-		//Sleep(1000);
-		
-		
-		//std::cout<< avgFPS << "\n";
-		//Update FPS every 15 frames
-		//framecounter += 1;
 	}
 
 
