@@ -112,7 +112,9 @@
     <ClCompile Include="imgui.cpp">
       <Filter>Definitions</Filter>
     </ClCompile>
-    <ClCompile Include="main3.cpp" />
+    <ClCompile Include="main.cpp">
+      <Filter>Resources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vertex_src.glsl">
