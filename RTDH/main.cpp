@@ -238,6 +238,8 @@ int main(){
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	checkGLError(glGetError());
 
+	glBindVertexArray(0);
+
 	//Register it as a CUDA graphics resource
 	cudaGraphicsResource *cuda_vbo_resource;
 	checkCudaErrors(cudaGraphicsGLRegisterBuffer(&cuda_vbo_resource, vbo[1], cudaGraphicsMapFlagsWriteDiscard));
@@ -293,9 +295,11 @@ int main(){
 	bool show_another_window = false;
 	ImVec4 clear_color = ImColor(114, 144, 154);
 
-	glfwSetTime(0.0);
+	//glfwSetTime(0.0);
 	while(!glfwWindowShouldClose(window)){		
-		//ImGui_ImplGlfw_NewFrame();
+		glfwPollEvents();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::Text("Hello, world!");
 
 		//Fetch a frame
 		frame=apiController.GetFrame();
@@ -305,8 +309,8 @@ int main(){
 			//If it is not NULL or incomplete, process it.
 			if(eReceiveStatus==VmbFrameStatusComplete){
 				//Start measuring time.
-				frameTime = glfwGetTime();
-				glfwSetTime(0.0);
+				//frameTime = glfwGetTime();
+				//glfwSetTime(0.0);
 
 				frame->GetImage(image);
 				//Copy to device
@@ -401,7 +405,7 @@ int main(){
 
 				}
 				//Measure the time to reconstruct a frame
-				recon_time=glfwGetTime();
+				//recon_time=glfwGetTime();
 
 				//If R was pressed, we store the last reconstructed frame.
 				if (storeCurrentFrame){
@@ -411,48 +415,13 @@ int main(){
 
 				checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_vbo_resource, 0));	
 				
-				//Draw everything
-
-				//glViewport(0, 0, N / 4, M / 4);
+				//Draw points
+				glUseProgram(shaderprogram);
+				glBindVertexArray(vao);
 				glDrawArrays(GL_POINTS, 0, (unsigned int)N*(unsigned int)M);
+				glBindVertexArray(0);
+				//glfwSwapBuffers(window);
 
-				/*
-				//Multiply with (checkerboarded) chirp function
-				launch_matrixMulComplexPointw(d_chirp, d_recorded_hologram, d_propagated, M, N);
-				checkCudaErrors(cudaGetLastError());
-				//FFT
-				result = cufftExecC2C(plan, d_propagated, d_propagated, CUFFT_FORWARD);
-				if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
-
-				//Map the openGL resource object so we can modify it
-				checkCudaErrors(cudaGraphicsMapResources(1, &cuda_vbo_resource, 0));
-				checkCudaErrors(cudaGraphicsResourceGetMappedPointer((void **)&vbo_mapped_pointer,
-					&num_bytes, cuda_vbo_resource));
-
-				//Calculate the phase 1difference and display it.
-				launch_phaseDifference(d_stored_frame, d_propagated, d_filtered_phase, 1.0, 0.0, M, N);
-				//checkCudaErrors(cudaGetLastError());
-				launch_sin(d_filtered_phase, d_phase_sin, M, N);
-				//checkCudaErrors(cudaGetLastError());
-				launch_cos(d_filtered_phase, d_phase_cos, M, N);
-				//checkCudaErrors(cudaGetLastError());
-				launch_filterPhase(d_phase_sin, d_phase_cos, vbo_mapped_pointer, 5, M, N);
-				//checkCudaErrors(cudaGetLastError());
-				launch_rescaleAndShiftF(vbo_mapped_pointer, 0.5 / PI, 0.5, M, N);
-				checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_vbo_resource, 0));
-
-				glViewport(N / 4, 0, N / 4, M / 4);
-				glDrawArrays(GL_POINTS, 0, (unsigned int)N*(unsigned int)M);
-				*/
-				//glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO); // invert color
-				//glEnable(GL_BLEND);
-				//params->Render(0, 0);
-				//glDisable(GL_BLEND);
-				//checkGLError(glGetError());
-				glfwSwapBuffers(window);
-				
-				//Check for keypresses
-				glfwPollEvents();
 
 				//Calculate the average frametime
 				totalFrameTime+=frameTime;
@@ -469,6 +438,12 @@ int main(){
 				
 			}
 		}
+
+		glUseProgram(0);
+		//glClear(GL_COLOR_BUFFER_BIT);
+		ImGui::Render();
+		glfwSwapBuffers(window);
+
 		//Requeue the frame so we can gather more images
 		apiController.QueueFrame(frame);
 		checkCudaErrors(cudaThreadSynchronize());
@@ -494,7 +469,8 @@ int main(){
 	free(h_chirp);
 	free(h_reconstructed);
 	
-	
+	//Shut down the GUI?
+	ImGui_ImplGlfw_Shutdown();
 
 	//End GLFW
 	glfwTerminate();
