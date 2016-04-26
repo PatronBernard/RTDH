@@ -61,6 +61,11 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		cMode=cameraModeFFT; 
 		std::cout << "FFT \n";
 	}
+
+	if (key == GLFW_KEY_5 && action == GLFW_PRESS){
+		cMode = cameraModeCombined;
+		std::cout << "Combined view";
+	}
 	
 	if (key == GLFW_KEY_R && action == GLFW_PRESS){
 		storeCurrentFrame=true;

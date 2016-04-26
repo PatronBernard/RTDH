@@ -38,4 +38,6 @@ extern "C" void launch_filterPhase(float *Asin, float *Acos, float*B, int window
 //Constructs the chirp function
 extern "C" void launch_constructChirp(Complex* A, float rec_dist, float lambda, 
 										float pixel_x, float pixel_y, int M, int N);
+//Downsamples an array to 1/4th its size
+extern "C" void launch_downSampleHalfSize(Complex* A, float B, int M, int N);
 #endif

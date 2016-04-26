@@ -393,6 +393,9 @@ int main(){
 							launch_addConstant(vbo_mapped_pointer,0.5,M,N);
 						}
 				}
+				else if (cMode == cameraModeCombined){
+
+				}
 				//Measure the time to reconstruct a frame
 				recon_time=glfwGetTime();
 
@@ -406,10 +409,10 @@ int main(){
 				
 				//Draw everything
 
-				glViewport(0, 0, N / 4, M / 4);
+				//glViewport(0, 0, N / 4, M / 4);
 				glDrawArrays(GL_POINTS, 0, (unsigned int)N*(unsigned int)M);
 
-
+				/*
 				//Multiply with (checkerboarded) chirp function
 				launch_matrixMulComplexPointw(d_chirp, d_recorded_hologram, d_propagated, M, N);
 				checkCudaErrors(cudaGetLastError());
@@ -436,7 +439,7 @@ int main(){
 
 				glViewport(N / 4, 0, N / 4, M / 4);
 				glDrawArrays(GL_POINTS, 0, (unsigned int)N*(unsigned int)M);
-
+				*/
 				//glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO); // invert color
 				//glEnable(GL_BLEND);
 				//params->Render(0, 0);

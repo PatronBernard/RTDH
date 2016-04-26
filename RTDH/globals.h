@@ -11,7 +11,8 @@ enum cameraMode{
 	cameraModeReconstruct,
 	cameraModeReconstructI,
 	cameraModeFFT,
-	cameraModeViewStoredFrame
+	cameraModeViewStoredFrame,
+	cameraModeCombined
 };
 
 enum displayMode{
