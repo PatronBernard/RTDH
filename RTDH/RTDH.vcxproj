@@ -110,7 +110,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions> _CRT_SECURE_NO_WARNINGS; WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Program Files\Allied Vision\Vimba_2.0\ThirdParty\TinyXML\Include;C:\glew-1.13.0\include;C:\glfw-3.1.2.bin.WIN32\include;C:\glm;C:\Users\Public\Documents\Allied Vision\Vimba_2.0\VimbaCPP_Examples;C:\Program Files\Allied Vision\Vimba_2.0\VimbaCPP\Include;C:\Users\Public\Documents\Allied Vision\Vimba_2.0\VimbaCPP_Examples\Bin\$(Platform);$(VIMBA_HOME);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Program Files\Allied Vision\Vimba_2.0\ThirdParty\TinyXML\Include;C:\glew-1.13.0\include;C:\glfw-3.1.2.bin.WIN32\include;C:\glm;C:\Users\Public\Documents\Allied Vision\Vimba_2.0\VimbaCPP_Examples;C:\Program Files\Allied Vision\Vimba_2.0\VimbaCPP\Include;C:\Users\Public\Documents\Allied Vision\Vimba_2.0\VimbaCPP_Examples\Bin\$(Platform);$(VIMBA_HOME);C:\Users\jan\Documents\GitHub\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -263,6 +263,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClInclude Include="globals.h" />
     <ClInclude Include="cuFFT_helper_functions.h" />
     <ClInclude Include="FrameObserver.h" />
+    <ClInclude Include="imgui_impl_glfw.h" />
     <ClInclude Include="param.h" />
     <ClInclude Include="paramgl.h" />
     <ClInclude Include="RTDH_helper_cuda.h" />
@@ -278,6 +279,10 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClCompile Include="globals.cpp" />
     <ClCompile Include="cuFFT_helper_functions.cpp" />
     <ClCompile Include="FrameObserver.cpp" />
+    <ClCompile Include="imgui.cpp" />
+    <ClCompile Include="imgui_demo.cpp" />
+    <ClCompile Include="imgui_draw.cpp" />
+    <ClCompile Include="imgui_impl_glfw.cpp" />
     <ClCompile Include="LoadSaveSettings.cpp" />
     <ClCompile Include="RTDH_CUDA.cpp" />
     <ClCompile Include="RTDH_GL.cpp" />

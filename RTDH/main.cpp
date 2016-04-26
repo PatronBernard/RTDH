@@ -35,7 +35,9 @@
 #include "ApiController.h"
 #include "LoadSaveSettings.h"
 
-#include "paramgl.h"
+//imGUI Stuff
+#include <imgui.h>
+#include "imgui_impl_glfw.h"
 
 
 int main(){
@@ -115,6 +117,8 @@ int main(){
 	
 	//Initialize the GLFW window
 	GLFWwindow *window = initGLFW((int)N/2, (int) M/2); 
+	glfwMakeContextCurrent(window);
+	ImGui_ImplGlfw_Init(window, true);
 	//glViewport(0, 0, 512, 512);
 	
 
@@ -278,11 +282,6 @@ int main(){
 	//std::string wtitle;
 	char wtitle[1024];
 
-	//Parameter test
-	int numDisplayedSlices;
-	ParamListGL *params;
-	params = new ParamListGL("test'");
-    params->AddParam(new Param<int>("displayed slices", numDisplayedSlices, 0, 256, 1, &numDisplayedSlices));
 
 	//Set up projection matrix 
 	//GLuint projection_Handle= glGetUniformLocation(shaderprogram, "Projection");
@@ -290,9 +289,14 @@ int main(){
 	//glUniformMatrix4fv(projection_Handle, 1, GL_FALSE, &Projection[0][0]);
 
 	//Start the main loop
+	bool show_test_window = true;
+	bool show_another_window = false;
+	ImVec4 clear_color = ImColor(114, 144, 154);
+
 	glfwSetTime(0.0);
 	while(!glfwWindowShouldClose(window)){		
-		
+		//ImGui_ImplGlfw_NewFrame();
+
 		//Fetch a frame
 		frame=apiController.GetFrame();
 		if(	!SP_ISNULL( frame) )
@@ -445,7 +449,6 @@ int main(){
 				//params->Render(0, 0);
 				//glDisable(GL_BLEND);
 				//checkGLError(glGetError());
-
 				glfwSwapBuffers(window);
 				
 				//Check for keypresses
