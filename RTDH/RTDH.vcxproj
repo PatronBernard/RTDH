@@ -253,7 +253,6 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
   </ItemDefinitionGroup>
   <ItemGroup>
     <CudaCompile Include="kernels.cu" />
-    <CudaCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApiController.h" />
@@ -284,6 +283,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClCompile Include="imgui_draw.cpp" />
     <ClCompile Include="imgui_impl_glfw.cpp" />
     <ClCompile Include="LoadSaveSettings.cpp" />
+    <ClCompile Include="main3.cpp" />
     <ClCompile Include="RTDH_CUDA.cpp" />
     <ClCompile Include="RTDH_GL.cpp" />
     <ClCompile Include="RTDH_GLFW.cpp" />

@@ -39,13 +39,18 @@
 #include <imgui.h>
 #include "imgui_impl_glfw.h"
 
+static void error_callback(int error, const char* description)
+{
+	fprintf(stderr, "Error %d: %s\n", error, description);
+}
 
-int main(){
-	
+int main()
+{
+
 	//Redirect stderror to log.txt.
 	FILE* logfile = freopen("log.txt", "w", stderr);
 	printTime(logfile);
-	
+
 	//Initialize the Vimba API and print some info.
 	AVT::VmbAPI::Examples::ApiController apiController;
 	std::cout << "Vimba Version V " << apiController.GetVersion() << "\n";
@@ -53,43 +58,46 @@ int main(){
 	//Start the API
 	VmbErrorType vmb_err = VmbErrorSuccess;
 	vmb_err = apiController.StartUp();
-	
-	if(vmb_err != VmbErrorSuccess){
-		fprintf(stderr,"%s: line %d: Vimba API Error: apiController.Startup() failed. \n",__FILE__,__LINE__);
-		exit(EXIT_FAILURE); 
+
+	if (vmb_err != VmbErrorSuccess){
+		fprintf(stderr, "%s: line %d: Vimba API Error: apiController.Startup() failed. \n", __FILE__, __LINE__);
+		exit(EXIT_FAILURE);
 	}
-	
+
 	//Look for cameras
 	std::string strCameraID;
 	AVT::VmbAPI::CameraPtr pCamera;
 	AVT::VmbAPI::CameraPtrVector cameraList = apiController.GetCameraList();
-	if(cameraList.size() == 0){
-		fprintf(stderr,"Error: couldn't find a camera. Shutting down... \n");
+	if (cameraList.size() == 0){
+		fprintf(stderr, "Error: couldn't find a camera. Shutting down... \n");
 		apiController.ShutDown();
 		exit(EXIT_FAILURE);
 	}
 	else{
 		//If a camera is found, store its pointer.
-		pCamera=cameraList[0];
+		pCamera = cameraList[0];
 		vmb_err = pCamera->GetID(strCameraID);
-		if(vmb_err != VmbErrorSuccess){
-			printVimbaError(vmb_err); apiController.ShutDown(); exit(EXIT_FAILURE);}
+		if (vmb_err != VmbErrorSuccess){
+			printVimbaError(vmb_err); apiController.ShutDown(); exit(EXIT_FAILURE);
+		}
 
 		//Open the camera and load its settings.
-		
+
 		vmb_err = pCamera->Open(VmbAccessModeFull);
 		AVT::VmbAPI::StringVector loadedFeatures;
-        AVT::VmbAPI::StringVector missingFeatures;
-        vmb_err = AVT::VmbAPI::Examples::LoadSaveSettings::LoadFromFile(pCamera, "CameraSettings.xml", loadedFeatures, missingFeatures, false);
-		if(vmb_err != VmbErrorSuccess){
-				printVimbaError(vmb_err); apiController.ShutDown(); exit(EXIT_FAILURE);}
+		AVT::VmbAPI::StringVector missingFeatures;
+		vmb_err = AVT::VmbAPI::Examples::LoadSaveSettings::LoadFromFile(pCamera, "CameraSettings.xml", loadedFeatures, missingFeatures, false);
+		if (vmb_err != VmbErrorSuccess){
+			printVimbaError(vmb_err); apiController.ShutDown(); exit(EXIT_FAILURE);
+		}
 		vmb_err = pCamera->Close();
-		if(vmb_err != VmbErrorSuccess){
-				printVimbaError(vmb_err); apiController.ShutDown(); exit(EXIT_FAILURE);}
-				
+		if (vmb_err != VmbErrorSuccess){
+			printVimbaError(vmb_err); apiController.ShutDown(); exit(EXIT_FAILURE);
+		}
+
 	}
-	
-	
+
+
 	//Fetch the dimensions of the image.
 	pCamera->Open(VmbAccessModeFull);
 
@@ -106,21 +114,20 @@ int main(){
 	feature_height->GetValue(height);
 	pCamera->Close();
 
-	int M=(int)height;
-	int N=(int)width;
-	
+	int M = (int)height;
+	int N = (int)width;
+
 	//=========================INITIALIZATION==========================
-	
+
 	//Read the reconstruction parameters. 
 	reconParameters parameters;
 	read_parameters("parameters.txt", &parameters);
-	
+
 	//Initialize the GLFW window
-	GLFWwindow *window = initGLFW((int)N/2, (int) M/2); 
+	GLFWwindow *window = initGLFW((int)N / 2, (int)M / 2);
 	glfwMakeContextCurrent(window);
-	ImGui_ImplGlfw_Init(window, true);
 	//glViewport(0, 0, 512, 512);
-	
+
 
 	//Set a few callbacks
 	glfwSetWindowSizeCallback(window, window_size_callback);
@@ -129,9 +136,12 @@ int main(){
 	//Search for CUDA devices and pick the best-suited one. 
 	findCUDAGLDevices();
 
-	//Allocate and set up the chirp-function, copy it to the GPU memory. Also checkerboard it 
-	// so we don't have to do that in the main loop.
-	Complex* h_chirp = (Complex*)malloc(sizeof(Complex)*N*M);
+	// Setup ImGui binding
+	ImGui_ImplGlfw_Init(window, true);
+
+	// Allocate and set up the chirp - function, copy it to the GPU memory.Also checkerboard it
+		// so we don't have to do that in the main loop.
+		Complex* h_chirp = (Complex*)malloc(sizeof(Complex)*N*M);
 	if (h_chirp == NULL){ printError(); exit(EXIT_FAILURE); }
 
 	construct_chirp(h_chirp, M, N, parameters.lambda, parameters.rec_dist, parameters.pixel_y, parameters.pixel_x);
@@ -140,10 +150,10 @@ int main(){
 	checkCudaErrors(cudaMalloc((void**)&d_chirp, sizeof(Complex)*M*N));
 
 	checkCudaErrors(cudaMemcpy(d_chirp, h_chirp, sizeof(Complex)*M*N, cudaMemcpyHostToDevice));
-	
+
 
 	dim3 block(16, 16, 1);
-	dim3 grid((unsigned int)M / block.x+1, (unsigned int)N / block.y+1, 1);
+	dim3 grid((unsigned int)M / block.x + 1, (unsigned int)N / block.y + 1, 1);
 	launch_checkerBoard(d_chirp, M, N);
 	checkCudaErrors(cudaGetLastError());
 
@@ -152,12 +162,12 @@ int main(){
 
 	Complex* d_recorded_hologram;
 	checkCudaErrors(cudaMalloc((void**)&d_recorded_hologram, sizeof(Complex)*M*N));
-	
+
 	Complex* d_stored_frame;
 	checkCudaErrors(cudaMalloc((void**)&d_stored_frame, sizeof(Complex)*M*N));
 
 	unsigned char* d_recorded_hologram_uchar;
-	checkCudaErrors(cudaMalloc((void**)&d_recorded_hologram_uchar,sizeof(unsigned char)*M*N));
+	checkCudaErrors(cudaMalloc((void**)&d_recorded_hologram_uchar, sizeof(unsigned char)*M*N));
 
 	Complex* d_propagated;
 	checkCudaErrors(cudaMalloc((void**)&d_propagated, sizeof(Complex)*M*N));
@@ -173,14 +183,14 @@ int main(){
 
 	//We'll use a vertex array object with two VBO's. The first will house the vertex positions, the second will 
 	//house the magnitude that will be calculated with a kernel. 
-	
+
 	GLuint vao;
 	GLuint vbo[2];
-	
+
 	//Create the vertex array object and two vertex buffer object names.
 	glGenVertexArrays(1, &vao);
 	checkGLError(glGetError());
-	
+
 	glBindVertexArray(vao);
 	checkGLError(glGetError());
 
@@ -191,14 +201,14 @@ int main(){
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 	checkGLError(glGetError());
 
-	
+
 	//Calculate the position of each vertex (one for every pixel in the image). 
 	float u, v, x, y;
 	int k = 0;
-	
-	
-	float *vertices = (float *) malloc(M*N * 2 * sizeof(float));
-	
+
+
+	float *vertices = (float *)malloc(M*N * 2 * sizeof(float));
+
 	for (int i = 0; i < M; i++){
 		for (int j = 0; j < N; j++){
 			u = (float)j - 0.5f*(float)N;
@@ -211,12 +221,12 @@ int main(){
 			k += 2;
 		}
 	}
-	
+
 	//Load these vertex coordinates into the first vbo
 	glBufferData(GL_ARRAY_BUFFER, N*M * 2 * sizeof(GLfloat), vertices, GL_DYNAMIC_DRAW);
 	checkGLError(glGetError());
 
-	glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,0,0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
 	checkGLError(glGetError());
 
 	glEnableVertexAttribArray(0);
@@ -242,10 +252,12 @@ int main(){
 	cudaGraphicsResource *cuda_vbo_resource;
 	checkCudaErrors(cudaGraphicsGLRegisterBuffer(&cuda_vbo_resource, vbo[1], cudaGraphicsMapFlagsWriteDiscard));
 
+	glBindVertexArray(0);
+
 	//Compile vertex and fragment shaders
 
-	GLuint shaderprogram = initShaders();
-	checkGLError(glGetError());
+	//GLuint shaderprogram = initShaders();
+	//checkGLError(glGetError());
 
 	// Set up cuFFT stuff
 	cufftComplex* d_reconstructed;
@@ -256,255 +268,61 @@ int main(){
 	cufftHandle plan;
 	result = cufftPlan2d(&plan, M, N, CUFFT_C2C);
 	if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
-	
-
-	
-	//=========================MAIN LOOP==========================
-	
-	apiController.StartContinuousImageAcquisition(strCameraID);
-	AVT::VmbAPI::FramePtr frame;
-	VmbUchar_t *image;
-	VmbFrameStatusType eReceiveStatus;
-	float *vbo_mapped_pointer;
-	
-	size_t num_bytes;
-
-	// Measure frametime and average it
-	double frameTime = 0.0;
-	double recon_time = 0.0;
-	int frameCounter = 0;
-	//Number of samples
-	int frameLimit = 5;
-	//Accumulator
-	double totalFrameTime=0.0;
-
-	double averageFrametime = 0.0;
-	//std::string wtitle;
-	char wtitle[1024];
 
 
-	//Set up projection matrix 
-	//GLuint projection_Handle= glGetUniformLocation(shaderprogram, "Projection");
-	//glm::mat4 Projection = glm::ortho(-1.0,1.0,-1.0,1.0);
-	//glUniformMatrix4fv(projection_Handle, 1, GL_FALSE, &Projection[0][0]);
-
-	//Start the main loop
 	bool show_test_window = true;
 	bool show_another_window = false;
 	ImVec4 clear_color = ImColor(114, 144, 154);
 
-	glfwSetTime(0.0);
-	while(!glfwWindowShouldClose(window)){		
-		//ImGui_ImplGlfw_NewFrame();
-
-		//Fetch a frame
-		frame=apiController.GetFrame();
-		if(	!SP_ISNULL( frame) )
-        {      
-			frame->GetReceiveStatus(eReceiveStatus);
-			//If it is not NULL or incomplete, process it.
-			if(eReceiveStatus==VmbFrameStatusComplete){
-				//Start measuring time.
-				frameTime = glfwGetTime();
-				glfwSetTime(0.0);
-
-				frame->GetImage(image);
-				//Copy to device
-				checkCudaErrors(cudaMemcpy(d_recorded_hologram_uchar,image,
-										sizeof(unsigned char)*M*N,
-										cudaMemcpyHostToDevice));
-
-				//Convert the image to a complex format.
-				launch_unsignedChar2cufftComplex(d_recorded_hologram,
-												 d_recorded_hologram_uchar,
-												 M,N);
-		
-				//Map the openGL resource object so we can modify it
-				checkCudaErrors(cudaGraphicsMapResources(1, &cuda_vbo_resource, 0));
-				checkCudaErrors(cudaGraphicsResourceGetMappedPointer(	(void **)&vbo_mapped_pointer, 
-																			&num_bytes, cuda_vbo_resource));
-
-
-
-				//Hologram Reconstruction
-				if (cMode == cameraModeReconstruct){
-					//Multiply with (checkerboarded) chirp function
-					launch_matrixMulComplexPointw(d_chirp, d_recorded_hologram, d_propagated,M,N);
-					checkCudaErrors(cudaGetLastError());
-					//FFT
-					result = cufftExecC2C(plan,d_propagated, d_propagated, CUFFT_FORWARD);
-					if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
-					
-					//Write to openGL object	
-					if (dMode==displayModeMagnitude){
-						launch_cufftComplex2MagnitudeF(vbo_mapped_pointer, d_propagated,5.0/(sqrt((float)M*(float)N)), M, N);
-					}
-					else if (dMode==displayModePhase){
-						launch_cufftComplex2PhaseF(vbo_mapped_pointer, d_propagated,0.5/PI, M, N);
-						launch_addConstant(vbo_mapped_pointer, 0.5, M, N);
-					}
-					checkCudaErrors(cudaGetLastError());
-				}
-				else if(cMode == cameraModeReconstructI){
-					//Multiply with (checkerboarded) chirp function
-					launch_matrixMulComplexPointw(d_chirp, d_recorded_hologram, d_propagated,M,N);
-					checkCudaErrors(cudaGetLastError());
-					//FFT
-					result = cufftExecC2C(plan,d_propagated, d_propagated, CUFFT_FORWARD);
-					if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
-					
-					//Calculate the phase 1difference and display it.
-					launch_phaseDifference(d_stored_frame, d_propagated, d_filtered_phase, 1.0, 0.0, M, N);
-					//checkCudaErrors(cudaGetLastError());
-					launch_sin(d_filtered_phase, d_phase_sin, M, N);
-					//checkCudaErrors(cudaGetLastError());
-					launch_cos(d_filtered_phase, d_phase_cos, M, N);
-					//checkCudaErrors(cudaGetLastError());
-					launch_filterPhase(d_phase_sin, d_phase_cos, vbo_mapped_pointer, 5, M, N);
-					//checkCudaErrors(cudaGetLastError());
-					launch_rescaleAndShiftF(vbo_mapped_pointer, 0.5 / PI, 0.5, M, N);
-				}
-				else if(cMode == cameraModeVideo){	
-						//Just write the image to the resource
-						launch_cufftComplex2MagnitudeF(vbo_mapped_pointer, d_recorded_hologram, 1.0, M, N);
-						checkCudaErrors(cudaGetLastError());	
-				}
-				else if (cMode == cameraModeFFT){
-						//FFT shift
-						launch_checkerBoard(d_recorded_hologram,M,N); 
-						checkCudaErrors(cudaGetLastError());
-						//FFT
-						result = cufftExecC2C(plan,d_recorded_hologram, d_recorded_hologram, CUFFT_FORWARD);
-						if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
-
-						//Write to openGL object	
-						if (dMode==displayModeMagnitude){
-							launch_cufftComplex2MagnitudeF(vbo_mapped_pointer, d_recorded_hologram,1/(sqrt((float)M*(float)N)), M, N);
-						}
-						else if (dMode==displayModePhase){
-							launch_cufftComplex2PhaseF(vbo_mapped_pointer, d_recorded_hologram,1./PI, M, N);
-						}
-						checkCudaErrors(cudaGetLastError());		
-				}
-				//Note: make this work with every mode? 
-				else if (cMode == cameraModeViewStoredFrame){
-					//In this case we just display the stored frame.
-					if (dMode==displayModeMagnitude){
-							launch_cufftComplex2MagnitudeF(vbo_mapped_pointer, d_stored_frame,1/(sqrt((float)M*(float)N)), M, N);
-						}
-						else if (dMode==displayModePhase){
-							launch_cufftComplex2PhaseF(vbo_mapped_pointer, d_stored_frame,0.5/PI, M, N);
-							launch_addConstant(vbo_mapped_pointer,0.5,M,N);
-						}
-				}
-				else if (cMode == cameraModeCombined){
-
-				}
-				//Measure the time to reconstruct a frame
-				recon_time=glfwGetTime();
-
-				//If R was pressed, we store the last reconstructed frame.
-				if (storeCurrentFrame){
-					storeCurrentFrame=false;
-					cudaMemcpy(d_stored_frame,d_propagated,sizeof(Complex)*M*N,cudaMemcpyDeviceToDevice);
-				}
-
-				checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_vbo_resource, 0));	
-				
-				//Draw everything
-
-				//glViewport(0, 0, N / 4, M / 4);
-				glDrawArrays(GL_POINTS, 0, (unsigned int)N*(unsigned int)M);
-
-				/*
-				//Multiply with (checkerboarded) chirp function
-				launch_matrixMulComplexPointw(d_chirp, d_recorded_hologram, d_propagated, M, N);
-				checkCudaErrors(cudaGetLastError());
-				//FFT
-				result = cufftExecC2C(plan, d_propagated, d_propagated, CUFFT_FORWARD);
-				if (result != CUFFT_SUCCESS) { printCufftError(); exit(EXIT_FAILURE); }
-
-				//Map the openGL resource object so we can modify it
-				checkCudaErrors(cudaGraphicsMapResources(1, &cuda_vbo_resource, 0));
-				checkCudaErrors(cudaGraphicsResourceGetMappedPointer((void **)&vbo_mapped_pointer,
-					&num_bytes, cuda_vbo_resource));
-
-				//Calculate the phase 1difference and display it.
-				launch_phaseDifference(d_stored_frame, d_propagated, d_filtered_phase, 1.0, 0.0, M, N);
-				//checkCudaErrors(cudaGetLastError());
-				launch_sin(d_filtered_phase, d_phase_sin, M, N);
-				//checkCudaErrors(cudaGetLastError());
-				launch_cos(d_filtered_phase, d_phase_cos, M, N);
-				//checkCudaErrors(cudaGetLastError());
-				launch_filterPhase(d_phase_sin, d_phase_cos, vbo_mapped_pointer, 5, M, N);
-				//checkCudaErrors(cudaGetLastError());
-				launch_rescaleAndShiftF(vbo_mapped_pointer, 0.5 / PI, 0.5, M, N);
-				checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_vbo_resource, 0));
-
-				glViewport(N / 4, 0, N / 4, M / 4);
-				glDrawArrays(GL_POINTS, 0, (unsigned int)N*(unsigned int)M);
-				*/
-				//glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO); // invert color
-				//glEnable(GL_BLEND);
-				//params->Render(0, 0);
-				//glDisable(GL_BLEND);
-				//checkGLError(glGetError());
-				glfwSwapBuffers(window);
-				
-				//Check for keypresses
-				glfwPollEvents();
-
-				//Calculate the average frametime
-				totalFrameTime+=frameTime;
-				frameCounter++;
-				if (frameCounter==frameLimit){
-					frameCounter=0;
-					averageFrametime=totalFrameTime/frameLimit;
-					totalFrameTime=0.0;
-					sprintf(wtitle,"FPS: %.3f    Frametime: %.5fs    Reconstruction time: %.5fs",
-							(int)1/averageFrametime,averageFrametime, recon_time);	
-
-					glfwSetWindowTitle(window, wtitle);							
-				}								
-				
-			}
+	// Main loop
+	while (!glfwWindowShouldClose(window))
+	{
+		glfwPollEvents();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::Text("Hello, world!");
+		/*
+		// 1. Show a simple window
+		// Tip: if we don't call ImGui::Begin()/ImGui::End() the widgets appears in a window automatically called "Debug"
+		{
+		static float f = 0.0f;
+		ImGui::Text("Hello, world!");
+		ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
+		ImGui::ColorEdit3("clear color", (float*)&clear_color);
+		if (ImGui::Button("Test Window")) show_test_window ^= 1;
+		if (ImGui::Button("Another Window")) show_another_window ^= 1;
+		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		}
-		//Requeue the frame so we can gather more images
-		apiController.QueueFrame(frame);
-		checkCudaErrors(cudaThreadSynchronize());
+
+		// 2. Show another simple window, this time using an explicit Begin/End pair
+		if (show_another_window)
+		{
+		ImGui::SetNextWindowSize(ImVec2(200,100), ImGuiSetCond_FirstUseEver);
+		ImGui::Begin("Another Window", &show_another_window);
+		ImGui::Text("Hello");
+		ImGui::End();
+		}
+
+		// 3. Show the ImGui test window. Most of the sample code is in ImGui::ShowTestWindow()
+		if (show_test_window)
+		{
+		ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
+		ImGui::ShowTestWindow(&show_test_window);
+		}
+		*/
+		// Rendering
+		int display_w, display_h;
+		glfwGetFramebufferSize(window, &display_w, &display_h);
+		glViewport(0, 0, display_w, display_h);
+		glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		ImGui::Render();
+		glfwSwapBuffers(window);
 	}
 
-
-	apiController.StopContinuousImageAcquisition();
-
-	//Export the last reconstructed frame. 
-	Complex* h_reconstructed=(Complex*) malloc(sizeof(Complex)*M*N);
-	checkCudaErrors(cudaMemcpy(h_reconstructed, d_propagated, sizeof(Complex)*M*N, cudaMemcpyDeviceToHost));
-
-	export_complex_data("reconstructed_hologram.bin", h_reconstructed, M*N);
-	
-
-	//Cleanup
-	checkCudaErrors(cudaFree(d_recorded_hologram));
-	checkCudaErrors(cudaFree(d_recorded_hologram_uchar));
-	checkCudaErrors(cudaFree(d_chirp));
-	checkCudaErrors(cudaFree(d_propagated));
-
-	free(vertices);
-	free(h_chirp);
-	free(h_reconstructed);
-	
-	
-
-	//End GLFW
+	// Cleanup
+	ImGui_ImplGlfw_Shutdown();
 	glfwTerminate();
 
-	apiController.ShutDown();
-
-	
-	fprintf(stderr, "No errors (that I'm aware of)! \n");
-	fclose(logfile);
-	
 	return 0;
 }
-
