@@ -42,17 +42,17 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		glfwSetWindowShouldClose(window, GL_TRUE);
 		std::cout << "Exiting... \n";
 	}
-	if (key == GLFW_KEY_1 && action == GLFW_PRESS){
+	if (key == GLFW_KEY_2 && action == GLFW_PRESS){
 		cMode=cameraModeReconstruct; 
 		std::cout << "Fresnell Reconstruction \n";
 	}
 
-	if (key == GLFW_KEY_2 && action == GLFW_PRESS){
+	if (key == GLFW_KEY_3 && action == GLFW_PRESS){
 		cMode=cameraModeReconstructI; 
 		std::cout << "Fresnell Reconstruction: Interferometry \n";
 	}
 
-	if (key == GLFW_KEY_3 && action == GLFW_PRESS){
+	if (key == GLFW_KEY_1 && action == GLFW_PRESS){
 		cMode=cameraModeVideo; 
 		std::cout << "Video \n";
 	}
@@ -62,11 +62,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		std::cout << "FFT \n";
 	}
 
-	if (key == GLFW_KEY_5 && action == GLFW_PRESS){
-		cMode = cameraModeCombined;
-		std::cout << "Combined view";
-	}
-	
 	if (key == GLFW_KEY_R && action == GLFW_PRESS){
 		storeCurrentFrame=true;
 		std::cout << "Stored a frame. \n";
@@ -91,6 +86,9 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 			dMode=displayModePhase;
 			std::cout << "Displaying complex phase. \n";
 		}
+	}
+	if (key == GLFW_KEY_C && action == GLFW_PRESS){
+		show_mijn_scherm = !show_mijn_scherm;
 	}
 	/*
 	if (key == GLFW_KEY_I && action == GLFW_PRESS){

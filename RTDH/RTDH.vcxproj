@@ -279,7 +279,6 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClCompile Include="cuFFT_helper_functions.cpp" />
     <ClCompile Include="FrameObserver.cpp" />
     <ClCompile Include="imgui.cpp" />
-    <ClCompile Include="imgui_demo.cpp" />
     <ClCompile Include="imgui_draw.cpp" />
     <ClCompile Include="imgui_impl_glfw.cpp" />
     <ClCompile Include="LoadSaveSettings.cpp" />

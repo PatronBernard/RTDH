@@ -103,9 +103,6 @@
     <ClCompile Include="imgui_impl_glfw.cpp">
       <Filter>Definitions</Filter>
     </ClCompile>
-    <ClCompile Include="imgui_demo.cpp">
-      <Filter>Definitions</Filter>
-    </ClCompile>
     <ClCompile Include="imgui_draw.cpp">
       <Filter>Definitions</Filter>
     </ClCompile>

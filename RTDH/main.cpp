@@ -39,6 +39,10 @@
 //imGUI Stuff
 #include <imgui.h>
 #include "imgui_impl_glfw.h"
+#define IM_NEWLINE "\r\n"
+static void ShowHotkeys(bool *p_opened, char *hotkeys_text);
+static void ShowAbout(bool *showAbout);
+void ImGui::ShowStyleEditor(ImGuiStyle* ref);
 
 
 int main(){
@@ -289,18 +293,55 @@ int main(){
 	//std::string wtitle;
 	char wtitle[1024];
 
+	//ImGUI Setup
 
-	//Set up projection matrix 
-	//GLuint projection_Handle= glGetUniformLocation(shaderprogram, "Projection");
-	//glm::mat4 Projection = glm::ortho(-1.0,1.0,-1.0,1.0);
-	//glUniformMatrix4fv(projection_Handle, 1, GL_FALSE, &Projection[0][0]);
-		
+	std::ifstream tfile;
+	int length;
+	char *hotkeys_text;
+	tfile.open("hotkeys.txt");      // open input file
+	if (tfile.good()){
+		tfile.seekg(0, std::ios::end);    // go to the end
+		length = tfile.tellg();           // report location (this is the length)
+		tfile.seekg(0, std::ios::beg);    // go back to the beginning
+		hotkeys_text = new char[length];    // allocate memory for a buffer of appropriate dimension
+		tfile.read(hotkeys_text, length - 1);       // read the whole file into the buffer
+		tfile.close();
+	}
+	else{
+		exit(EXIT_FAILURE);
+	}
 
+	show_mijn_scherm = true;
+
+	static bool no_titlebar = false;
+	static bool no_border = true;
+	static bool no_resize = false;
+	static bool no_move = false;
+	static bool no_scrollbar = false;
+	static bool no_collapse = false;
+	static bool no_menu = false;
+	
+	ImGuiWindowFlags window_flags = 0;
+	if (no_titlebar)  window_flags |= ImGuiWindowFlags_NoTitleBar;
+	if (!no_border)   window_flags |= ImGuiWindowFlags_ShowBorders;
+	if (no_resize)    window_flags |= ImGuiWindowFlags_NoResize;
+	if (no_move)      window_flags |= ImGuiWindowFlags_NoMove;
+	if (no_scrollbar) window_flags |= ImGuiWindowFlags_NoScrollbar;
+	if (no_collapse)  window_flags |= ImGuiWindowFlags_NoCollapse;
+	if (!no_menu)     window_flags |= ImGuiWindowFlags_MenuBar;
+
+	bool cMode_Fresnell = true;
+	bool cMode_Interf = false;
+	bool cMode_Video = false;
+	bool showHotkeys = false;
+	bool p_opened = true;
+	bool showAbout = false;
+	bool showStyleEditor = false;
+
+	float rec_dist = parameters.rec_dist;
+
+	//ImVec4 clear_color = ImColor(114, 144, 154);
 	//Start the main loop
-	bool show_test_window = true;
-	bool show_another_window = true;
-	ImVec4 clear_color = ImColor(114, 144, 154);
-
 	while(!glfwWindowShouldClose(window)){		
 		glfwPollEvents();
 		
@@ -330,6 +371,8 @@ int main(){
 				checkCudaErrors(cudaGraphicsMapResources(1, &cuda_vbo_resource, 0));
 				checkCudaErrors(cudaGraphicsResourceGetMappedPointer(	(void **)&vbo_mapped_pointer, 
 																			&num_bytes, cuda_vbo_resource));
+
+				launch_constructChirp(d_chirp, rec_dist, parameters.lambda, parameters.pixel_x, parameters.pixel_y, M, N);
 
 				//Hologram Reconstruction
 				if (cMode == cameraModeReconstruct){
@@ -402,9 +445,6 @@ int main(){
 							launch_addConstant(vbo_mapped_pointer,0.5,M,N);
 						}
 				}
-				else if (cMode == cameraModeCombined){
-
-				}
 				//Measure the time to reconstruct a frame
 				recon_time= (double) (clock()-t)/CLOCKS_PER_SEC;
 
@@ -435,19 +475,102 @@ int main(){
 			}
 		}
 
+		//Draw the interface
+		ImGui_ImplGlfw_NewFrame();
+		if (show_mijn_scherm){
+			if (showHotkeys){
+				ShowHotkeys(&showHotkeys, hotkeys_text);
+			}
+			if (showAbout){
+				ShowAbout(&showAbout);
+			}
+			if (showStyleEditor){
+				ImGui::SetNextWindowPos(ImVec2(460, 520), ImGuiSetCond_FirstUseEver);
+				ImGui::Begin("Style editor", &showStyleEditor, 0);
+				ImGui::ShowStyleEditor(NULL);
+				ImGui::End();
+			}
+
+			ImGui::SetNextWindowPos(ImVec2(400, 450), ImGuiSetCond_FirstUseEver);
+			ImGui::Begin("Controls (C)", &show_mijn_scherm, window_flags);
+			if (ImGui::BeginMenuBar())
+			{
+				if (ImGui::BeginMenu("File"))
+				{
+					//if (ImGui::MenuItem("Look for camera...", "F5")) {}
+					//if (ImGui::MenuItem("Save", "Ctrl+S")) {}
+					//if (ImGui::MenuItem("Save As..", "Ctrl+Shift+S")) {}
+					if (ImGui::MenuItem("Quit", "Esc")) {
+						break;
+					}
+					ImGui::EndMenu();
+				}
+				if (ImGui::BeginMenu("Mode")){
+					static int e = 0;
+					if (ImGui::MenuItem("Video", "1", cMode == 0, true)){
+						cMode = cameraModeVideo;
+					};
+
+					if (ImGui::MenuItem("Fresnell Reconstruction (Magnitude)", "2", cMode == 1, true)){
+						cMode = cameraModeReconstruct;
+					};
+
+					if (ImGui::MenuItem("Holographic Interferometry(Phase)", "3", cMode == 2, true)){
+						cMode = cameraModeReconstructI;
+					};
+
+					if (ImGui::MenuItem("FFT", "4", cMode == 3, true)){
+						cMode = cameraModeFFT;
+					};
+
+					if (ImGui::MenuItem("View currently stored frame.", "V", cMode == 4, true)){
+						cMode = cameraModeViewStoredFrame;
+					};
+					ImGui::EndMenu();
+				}
+				/*
+				if (ImGui::BeginMenu("Settings")){
+					if (ImGui::BeginMenu("Colormap")){
+						if (ImGui::MenuItem("Hot", NULL, cMap == colormapHot, true)){
+							cMap = colormapHot;
+						};
+						if (ImGui::MenuItem("Jet", NULL, cMap == colormapJet, true)){
+							cMap = colormapJet;
+						};
+						if (ImGui::MenuItem("Green", NULL, cMap == colormapGreen, true)){
+							cMap = colormapGreen;
+						};
+						ImGui::EndMenu();
+					}
+					if (ImGui::MenuItem("Style editor", NULL, false, true)){
+						showStyleEditor ^= 1;
+					}
+					ImGui::EndMenu();
+				}
+				*/
+				if (ImGui::BeginMenu("Help")){
+					if (ImGui::MenuItem("Show Hotkeys", NULL, false, true)){
+						showHotkeys ^= 1;
+					};
+					if (ImGui::MenuItem("About", NULL, false, true)){
+						showAbout ^= 1;
+					}
+					ImGui::EndMenu();
+				}
+				ImGui::EndMenuBar();
+			}
+			ImGui::SliderFloat("Recontruction distance (m)", &rec_dist, -1.0, 1.0);
+			ImGui::End();
+		}
+
 		//Draw points
 		glUseProgram(shaderprogram);
 		glBindVertexArray(vao);
 		glDrawArrays(GL_POINTS, 0, (unsigned int)N*(unsigned int)M);
 		glBindVertexArray(0);
 
-		/*
-		ImGui_ImplGlfw_NewFrame();
-		ImGui::Text("Hello world!");
 		glUseProgram(0);
 		ImGui::Render();
-		*/
-
 		glfwSwapBuffers(window);
 
 		//Requeue the frame so we can gather more images
@@ -491,3 +614,125 @@ int main(){
 	return 0;
 }
 
+static void ShowHotkeys(bool* p_opened, char  *hotkeys_text){
+	ImGui::SetNextWindowPos(ImVec2(300, 200), ImGuiSetCond_FirstUseEver);
+	if (ImGui::Begin("Hotkeys", p_opened, NULL)){
+		ImGui::TextWrapped(hotkeys_text);
+		ImGui::End();
+	}
+
+}
+
+static void ShowAbout(bool *showAbout){
+	ImGui::SetNextWindowPos(ImVec2(300, 200), ImGuiSetCond_FirstUseEver);
+	if (ImGui::Begin("About", showAbout, NULL)){
+		ImGui::TextWrapped("Written in 2016 by Jan Morez for a Master Thesis in Physics, University of Antwerp. \nSource code can be found here: \nhttps://github.com/PatronBernard/RTDH");
+		ImGui::End();
+	}
+};
+
+void ImGui::ShowStyleEditor(ImGuiStyle* ref)
+{
+	ImGuiStyle& style = ImGui::GetStyle();
+
+	const ImGuiStyle def; // Default style
+	if (ImGui::Button("Revert Style"))
+		style = ref ? *ref : def;
+	if (ref)
+	{
+		ImGui::SameLine();
+		if (ImGui::Button("Save Style"))
+			*ref = style;
+	}
+
+	ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.55f);
+
+	if (ImGui::TreeNode("Rendering"))
+	{
+		ImGui::Checkbox("Anti-aliased lines", &style.AntiAliasedLines);
+		ImGui::Checkbox("Anti-aliased shapes", &style.AntiAliasedShapes);
+		ImGui::PushItemWidth(100);
+		ImGui::DragFloat("Curve Tessellation Tolerance", &style.CurveTessellationTol, 0.02f, 0.10f, FLT_MAX, NULL, 2.0f);
+		if (style.CurveTessellationTol < 0.0f) style.CurveTessellationTol = 0.10f;
+		ImGui::DragFloat("Global Alpha", &style.Alpha, 0.005f, 0.20f, 1.0f, "%.2f"); // Not exposing zero here so user doesn't "lose" the UI (zero alpha clips all widgets). But application code could have a toggle to switch between zero and non-zero.
+		ImGui::PopItemWidth();
+		ImGui::TreePop();
+	}
+
+	if (ImGui::TreeNode("Sizes"))
+	{
+		ImGui::SliderFloat2("WindowPadding", (float*)&style.WindowPadding, 0.0f, 20.0f, "%.0f");
+		ImGui::SliderFloat("WindowRounding", &style.WindowRounding, 0.0f, 16.0f, "%.0f");
+		ImGui::SliderFloat("ChildWindowRounding", &style.ChildWindowRounding, 0.0f, 16.0f, "%.0f");
+		ImGui::SliderFloat2("FramePadding", (float*)&style.FramePadding, 0.0f, 20.0f, "%.0f");
+		ImGui::SliderFloat("FrameRounding", &style.FrameRounding, 0.0f, 16.0f, "%.0f");
+		ImGui::SliderFloat2("ItemSpacing", (float*)&style.ItemSpacing, 0.0f, 20.0f, "%.0f");
+		ImGui::SliderFloat2("ItemInnerSpacing", (float*)&style.ItemInnerSpacing, 0.0f, 20.0f, "%.0f");
+		ImGui::SliderFloat2("TouchExtraPadding", (float*)&style.TouchExtraPadding, 0.0f, 10.0f, "%.0f");
+		ImGui::SliderFloat("IndentSpacing", &style.IndentSpacing, 0.0f, 30.0f, "%.0f");
+		ImGui::SliderFloat("ScrollbarSize", &style.ScrollbarSize, 1.0f, 20.0f, "%.0f");
+		ImGui::SliderFloat("ScrollbarRounding", &style.ScrollbarRounding, 0.0f, 16.0f, "%.0f");
+		ImGui::SliderFloat("GrabMinSize", &style.GrabMinSize, 1.0f, 20.0f, "%.0f");
+		ImGui::SliderFloat("GrabRounding", &style.GrabRounding, 0.0f, 16.0f, "%.0f");
+		ImGui::TreePop();
+	}
+
+	if (ImGui::TreeNode("Colors"))
+	{
+		static int output_dest = 0;
+		static bool output_only_modified = false;
+		if (ImGui::Button("Copy Colors"))
+		{
+			if (output_dest == 0)
+				ImGui::LogToClipboard();
+			else
+				ImGui::LogToTTY();
+			ImGui::LogText("ImGuiStyle& style = ImGui::GetStyle();" IM_NEWLINE);
+			for (int i = 0; i < ImGuiCol_COUNT; i++)
+			{
+				const ImVec4& col = style.Colors[i];
+				const char* name = ImGui::GetStyleColName(i);
+				if (!output_only_modified || memcmp(&col, (ref ? &ref->Colors[i] : &def.Colors[i]), sizeof(ImVec4)) != 0)
+					ImGui::LogText("style.Colors[ImGuiCol_%s]%*s= ImVec4(%.2ff, %.2ff, %.2ff, %.2ff);" IM_NEWLINE, name, 22 - (int)strlen(name), "", col.x, col.y, col.z, col.w);
+			}
+			ImGui::LogFinish();
+		}
+		ImGui::SameLine(); ImGui::PushItemWidth(120); ImGui::Combo("##output_type", &output_dest, "To Clipboard\0To TTY"); ImGui::PopItemWidth();
+		ImGui::SameLine(); ImGui::Checkbox("Only Modified Fields", &output_only_modified);
+
+		static ImGuiColorEditMode edit_mode = ImGuiColorEditMode_RGB;
+		ImGui::RadioButton("RGB", &edit_mode, ImGuiColorEditMode_RGB);
+		ImGui::SameLine();
+		ImGui::RadioButton("HSV", &edit_mode, ImGuiColorEditMode_HSV);
+		ImGui::SameLine();
+		ImGui::RadioButton("HEX", &edit_mode, ImGuiColorEditMode_HEX);
+		//ImGui::Text("Tip: Click on colored square to change edit mode.");
+
+		static ImGuiTextFilter filter;
+		filter.Draw("Filter colors", 200);
+
+		ImGui::BeginChild("#colors", ImVec2(0, 300), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+		ImGui::PushItemWidth(-160);
+		ImGui::ColorEditMode(edit_mode);
+		for (int i = 0; i < ImGuiCol_COUNT; i++)
+		{
+			const char* name = ImGui::GetStyleColName(i);
+			if (!filter.PassFilter(name))
+				continue;
+			ImGui::PushID(i);
+			ImGui::ColorEdit4(name, (float*)&style.Colors[i], true);
+			if (memcmp(&style.Colors[i], (ref ? &ref->Colors[i] : &def.Colors[i]), sizeof(ImVec4)) != 0)
+			{
+				ImGui::SameLine(); if (ImGui::Button("Revert")) style.Colors[i] = ref ? ref->Colors[i] : def.Colors[i];
+				if (ref) { ImGui::SameLine(); if (ImGui::Button("Save")) ref->Colors[i] = style.Colors[i]; }
+			}
+			ImGui::PopID();
+		}
+		ImGui::PopItemWidth();
+		ImGui::EndChild();
+
+		ImGui::TreePop();
+	}
+
+	ImGui::PopItemWidth();
+};

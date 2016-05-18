@@ -12,7 +12,6 @@ enum cameraMode{
 	cameraModeReconstructI,
 	cameraModeFFT,
 	cameraModeViewStoredFrame,
-	cameraModeCombined
 };
 
 enum displayMode{
@@ -22,6 +21,7 @@ enum displayMode{
 
 extern cameraMode cMode;
 extern displayMode dMode;
+extern bool show_mijn_scherm;
 extern bool storeCurrentFrame;
 extern bool addRecordedFrameToCurrent;
 #endif
