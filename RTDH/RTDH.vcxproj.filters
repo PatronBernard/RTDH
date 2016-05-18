@@ -125,13 +125,13 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Xml Include="CameraSettings.xml">
-      <Filter>Other</Filter>
-    </Xml>
-  </ItemGroup>
-  <ItemGroup>
     <Text Include="parameters.txt">
       <Filter>Other</Filter>
     </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="CameraSettings.xml">
+      <Filter>Other</Filter>
+    </Xml>
   </ItemGroup>
 </Project>

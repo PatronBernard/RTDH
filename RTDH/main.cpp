@@ -17,7 +17,7 @@
 #include <cufftXt.h>		//CUDA FFT
 #include <cuda_runtime.h>
 
-#include "RTDH_helper_cuda.h"	//heckCudaErrors
+#include "RTDH_helper_cuda.h"	//CheckCudaErrors
 #include "RTDH_utility.h"	
 #include "RTDH_GLFW.h"
 #include "RTDH_CUDA.h"
@@ -26,7 +26,8 @@
 
 //Other
 #include <iostream>
-#include "globals.h"
+#include "globals.h" //Global variables
+#include <ctime>
 
 //GLFW
 #include <GLFW\glfw3.h>
@@ -91,7 +92,7 @@ int main(){
 	
 	
 	//Fetch the dimensions of the image.
-	pCamera->Open(VmbAccessModeFull);
+	pCamera->Open(VmbAccessModeRead);
 
 	AVT::VmbAPI::FeaturePtr feature_width;
 	pCamera->GetFeatureByName("Width", feature_width);
@@ -274,6 +275,8 @@ int main(){
 	size_t num_bytes;
 
 	// Measure frametime and average it
+	std::clock_t t;
+	t = 0;
 	double frameTime = 0.0;
 	double recon_time = 0.0;
 	int frameCounter = 0;
@@ -291,14 +294,13 @@ int main(){
 	//GLuint projection_Handle= glGetUniformLocation(shaderprogram, "Projection");
 	//glm::mat4 Projection = glm::ortho(-1.0,1.0,-1.0,1.0);
 	//glUniformMatrix4fv(projection_Handle, 1, GL_FALSE, &Projection[0][0]);
-
+		
 
 	//Start the main loop
 	bool show_test_window = true;
 	bool show_another_window = true;
 	ImVec4 clear_color = ImColor(114, 144, 154);
 
-	//glfwSetTime(0.0);
 	while(!glfwWindowShouldClose(window)){		
 		glfwPollEvents();
 		
@@ -310,8 +312,8 @@ int main(){
 			//If it is not NULL or incomplete, process it.
 			if(eReceiveStatus==VmbFrameStatusComplete){
 				//Start measuring time.
-				//frameTime = glfwGetTime();
-				//glfwSetTime(0.0);
+				frameTime = (double) (clock()-t)/CLOCKS_PER_SEC;
+				t = clock();
 
 				frame->GetImage(image);
 				//Copy to device
@@ -404,7 +406,8 @@ int main(){
 
 				}
 				//Measure the time to reconstruct a frame
-				//recon_time=glfwGetTime();
+				recon_time= (double) (clock()-t)/CLOCKS_PER_SEC;
+
 
 				//If R was pressed, we store the last reconstructed frame.
 				if (storeCurrentFrame){
@@ -414,11 +417,7 @@ int main(){
 
 				checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_vbo_resource, 0));	
 				
-				//Draw points
-				glUseProgram(shaderprogram);
-				glBindVertexArray(vao);
-				glDrawArrays(GL_POINTS, 0, (unsigned int)N*(unsigned int)M);
-				glBindVertexArray(0);
+				
 
 				//Calculate the average frametime
 				totalFrameTime+=frameTime;
@@ -435,10 +434,20 @@ int main(){
 				
 			}
 		}
+
+		//Draw points
+		glUseProgram(shaderprogram);
+		glBindVertexArray(vao);
+		glDrawArrays(GL_POINTS, 0, (unsigned int)N*(unsigned int)M);
+		glBindVertexArray(0);
+
+		/*
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::Text("Hello world!");
 		glUseProgram(0);
 		ImGui::Render();
+		*/
+
 		glfwSwapBuffers(window);
 
 		//Requeue the frame so we can gather more images

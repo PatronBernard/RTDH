@@ -294,12 +294,10 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <None Include="vertex_src.glsl" />
   </ItemGroup>
   <ItemGroup>
-    <Xml Include="CameraSettings.xml">
-      <SubType>Designer</SubType>
-    </Xml>
+    <Text Include="parameters.txt" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="parameters.txt" />
+    <Xml Include="CameraSettings.xml" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
