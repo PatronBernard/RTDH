@@ -161,8 +161,8 @@ int main(){
 	Complex* d_stored_frame;
 	checkCudaErrors(cudaMalloc((void**)&d_stored_frame, sizeof(Complex)*M*N));
 
-	unsigned char* d_recorded_hologram_uchar;
-	checkCudaErrors(cudaMalloc((void**)&d_recorded_hologram_uchar,sizeof(unsigned char)*M*N));
+	unsigned int* d_recorded_hologram_uchar;
+	checkCudaErrors(cudaMalloc((void**)&d_recorded_hologram_uchar,sizeof(unsigned int)*M*N));
 
 	Complex* d_propagated;
 	checkCudaErrors(cudaMalloc((void**)&d_propagated, sizeof(Complex)*M*N));
@@ -272,6 +272,7 @@ int main(){
 	
 	apiController.StartContinuousImageAcquisition(strCameraID);
 	AVT::VmbAPI::FramePtr frame;
+	//VmbUint16_t *image;
 	VmbUchar_t *image;
 	VmbFrameStatusType eReceiveStatus;
 	float *vbo_mapped_pointer;
@@ -355,7 +356,6 @@ int main(){
 				//Start measuring time.
 				frameTime = (double) (clock()-t)/CLOCKS_PER_SEC;
 				t = clock();
-
 				frame->GetImage(image);
 				//Copy to device
 				checkCudaErrors(cudaMemcpy(d_recorded_hologram_uchar,image,
@@ -373,6 +373,8 @@ int main(){
 																			&num_bytes, cuda_vbo_resource));
 
 				launch_constructChirp(d_chirp, rec_dist, parameters.lambda, parameters.pixel_x, parameters.pixel_y, M, N);
+				launch_checkerBoard(d_chirp, M, N);
+				//launch_
 
 				//Hologram Reconstruction
 				if (cMode == cameraModeReconstruct){

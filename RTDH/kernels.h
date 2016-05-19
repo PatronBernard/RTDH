@@ -18,7 +18,7 @@ extern "C" void launch_checkerBoard(Complex* A, int M, int N);
 //Pointwise multiplication of A and B and write the result to C
 extern "C" void launch_matrixMulComplexPointw(Complex* A, Complex* B, Complex* C, int M, int N);
 //Converts an unsigned char matrix to a strictly real (but Complex type) matrix normalized between 0 and 1
-extern "C" void launch_unsignedChar2cufftComplex(Complex* z, unsigned char *A, int M, int N);
+extern "C" void launch_unsignedChar2cufftComplex(Complex* z, unsigned int *A, int M, int N);
 //Pointwise addition of two complex matrices
 extern "C" void launch_addComplexPointWiseF(Complex *A, Complex *B, Complex *C, int M, int N);
 //Pointwise addition of a constant, perhaps extend with scaling?

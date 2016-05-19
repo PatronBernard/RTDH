@@ -45,7 +45,7 @@ __global__ void checkerBoard(Complex* A, int M, int N){
 	}
 }
 
-__global__ void unsignedChar2cufftComplex(Complex* z, unsigned char *A, int M, int N){
+__global__ void unsignedChar2cufftComplex(Complex* z, unsigned char*A, int M, int N){
 	int i = blockIdx.x*blockDim.x + threadIdx.x;
 	int j = blockIdx.y*blockDim.y + threadIdx.y;
 	if (i < M && j < N){
