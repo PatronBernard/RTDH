@@ -21,4 +21,21 @@ Next it will load the CameraSettings.xml file onto the camera. Changing the reso
 The camera has the following 4 modes:
 <ul>
 <li>Video mode: displays the raw image that the CCD registers. Useful for alignment or other optical experiments.</li>
-</ul
+<li>Reconstruction mode: real-time Fresnell reconstruction. You can adjust the reconstruction distance with the slider. You can also display the phase, although it is meaningless here because there is no phase to compare it to.</li>
+<li>Holographic interferometry mode: displays the phase difference relative to a recorded phase (which is achieved by pressing R).</li>
+<li>Fourier Transform mode: plain Fourier transform of the CCD image. In conjuction with a lens you can draw periodic patterns, film them and see the 2D power spectrum.</li>
+<li>View recorde frame mode: speaks for itself.</li>
+</ul>
+Note that upon exiting the application, the recorded reconstructed hologram will be exported to a binary file (reconstructed_hologram.bin). 
+
+<h4>Hotkeys</h4>
+Esc - Close application
+1 - Select video mode
+2 - Fresnell reconstruction
+3 - Holographic interferometry
+R - Record a frame for holographic interferometry
+V - View recorded frame
+4 - FFT
+M - Display magnitude (if applicable)
+P - Display phase (if applicable)
+C - Show/hide control dialog
