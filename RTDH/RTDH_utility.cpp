@@ -244,5 +244,5 @@ void export_complex_data(const char* inputfile, Complex* data,const int& element
 }
 
 void printConsoleInfo(){
-	std::cout << "Esc - Close application \n 1 - Select video mode \n 2 - Fresnell reconstruction \n 3 - Holographic interferometry \n R - Record a frame for holographic interferometry \n V - View recorded frame \n 4 - FFT \n M - Display magnitude(if applicable) \n P - Display phase(if applicable) \n C - Show / hide dialog \n";
+	std::cout << "Esc - Close application \n 1 - Select video mode \n 2 - Fresnel reconstruction \n 3 - Holographic interferometry \n R - Record a frame for holographic interferometry \n V - View recorded frame \n 4 - FFT \n M - Display magnitude(if applicable) \n P - Display phase(if applicable) \n C - Show / hide dialog \n";
 };

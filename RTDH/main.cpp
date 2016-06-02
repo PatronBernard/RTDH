@@ -521,7 +521,7 @@ int main(){
 						cMode = cameraModeVideo;
 					};
 
-					if (ImGui::MenuItem("Fresnell Reconstruction (Magnitude)", "2", cMode == 1, true)){
+					if (ImGui::MenuItem("Fresnel Reconstruction (Magnitude)", "2", cMode == 1, true)){
 						cMode = cameraModeReconstruct;
 					};
 
