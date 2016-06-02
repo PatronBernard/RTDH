@@ -1,1 +1,10 @@
-sgfdfgdf
+Esc - Close application
+1 - Select video mode
+2 - Fresnell reconstruction
+3 - Holographic interferometry
+R - Record the phase for holographic interferometry
+V - View recorded frame
+4 - FFT
+M - Display magnitude (if applicable)
+P - Display phase (if applicable)
+C - Show/hide this dialog
