@@ -4,24 +4,21 @@ Real-Time Digital Holography accelerated with CUDA and visualized with GLFW
 <h4>Required libraries</h4>
 <p>I listed the versions that I created the project with, other versions are untested but will likely work.</p>
 <ul>
-<li>Vimba 1.4</li>
+<li>Vimba 2.0</li>
 <li>CUDA 6.5 </li>
 <li>GLEW 1.13.0</li>
 <li>GLFW 3.1.2 (WIN64)</li>
-<li>GLM 0.9.7.2</li>
-<li>(Visual Studio Express 2012 or another CUDA-compatible VS version)</li>
-</ul>
-<p> It is critical that you use the Win32 binaries for everything, or you'll get unresolved external symbol-errors. Vimba only has
-32-bit dlls, and cuFFT only has Win32 build in CUDA 6.5, it is deprecated in higher versions.</p>
-<h4>Configuring Visual Studio </h4>
-<p>I've noticed that simply cloning this project and opening the .sln file causes lots of trouble, partially because the user might have their library directories in a different location or the user has a different VS version. Here are the basic steps that should allow you to build the project:</p>
-<b>1.</b> Create a new VS-project CUDA 6.5 Runtime project (only possible if you selected the "Visual Studio Integration" option during the CUDA-installation). This will save you a lot of work, doing this manually is possible but tedious. <br>
-<b>2.</b> Add all the source files (.cpp, .h and .cu files) <br>
-<b>3.</b> In the <i>VC++ Directories</i> tab, add the  <i>GLEW/include</i> and <i>GLFW/include</i> directories. <br>
-<b>4.</b> In the <i>Linker>General</i> tab, add the <i>GLEW/lib</i> and GLFW/lib</i> directories. Make sure that you use the VS-2013 libraries, as the toolset of the project is v120. <br>
-<b>5.</b> In the <i>Linker>Input tab</i>, add the following files: <br>
+<li>ImGui 1.48</li>
+<li>(Visual Studio 2013 or another CUDA-compatible VS version)</li>
+
+<h4>Launching</h4>
+The program (RTDH.exe) will first search for a camera. If it does not find one, it will exit and report the reason in log.txt. 
+
+<h4>Configuring the camera</h4>
+Next it will load the CameraSettings.xml file onto the camera. Changing the resolution seems a bit quirky, sometimes the settings stick, sometimes they don't. You can also use the Vimba viewer to configure the camera in real time and save the .xml file (untested). The exposure time is also changed in this file.
+
+<h4>Using the different modes</h4>
+The camera has the following 4 modes:
 <ul>
-<li>glfw3.lib</li>
-<li>Release\Win32\glew32s.lib</li>
-<li>opengl32.lib</li>
-</ul>
+<li>Video mode: displays the raw image that the CCD registers. Useful for alignment or other optical experiments.</li>
+</ul
