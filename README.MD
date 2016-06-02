@@ -10,7 +10,7 @@ Real-Time Digital Holography accelerated with CUDA and visualized with GLFW
 <li>GLFW 3.1.2 (WIN64)</li>
 <li>ImGui 1.48</li>
 <li>(Visual Studio 2013 or another CUDA-compatible VS version)</li>
-
+</ul>
 <h4>Launching</h4>
 The program (RTDH.exe) will first search for a camera. If it does not find one, it will exit and report the reason in log.txt. 
 
