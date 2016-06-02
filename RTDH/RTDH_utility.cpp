@@ -10,8 +10,6 @@ void printTime(FILE* filePtr){
 	fprintf(filePtr, "Error log of %s \n", text);
 }
 
-
-
 //Helper function that returns an error string for Vimba API errors
 char* getVimbaErrorStr(VmbErrorType vmb_err){
 	switch(vmb_err){
@@ -246,10 +244,5 @@ void export_complex_data(const char* inputfile, Complex* data,const int& element
 }
 
 void printConsoleInfo(){
-	std::cout << "Available modes: \n 1 - Fresnell Reconstruction - Magnitude (default) \n 2 - Video \n 3 - FFT \n \n";
-	std::cout << "Additional features: \n";
-	std::cout << "R - Store current frame \n";
-	std::cout << "V - View last stored frame \n";
-	std::cout << "M - Display complex magnitude. \n";
-	std::cout << "P - Display complex phase \n";
+	std::cout << "Esc - Close application \n 1 - Select video mode \n 2 - Fresnell reconstruction \n 3 - Holographic interferometry \n R - Record a frame for holographic interferometry \n V - View recorded frame \n 4 - FFT \n M - Display magnitude(if applicable) \n P - Display phase(if applicable) \n C - Show / hide dialog \n";
 };

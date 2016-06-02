@@ -1,3 +1,8 @@
+//Written by Jan Morez (2016) for a Master Thesis in Physics.
+//Supervisor: prof. dr. Joris Dirckx
+//Co-supervisor: dr. Sam Van Der Jeught
+//Parts of this code will be identical to that of the example code of the libraries used.
+
 //Fix some annoying warnings
 #define _CRT_SECURE_NO_DEPRECATE
 
@@ -55,7 +60,7 @@ int main(){
 	AVT::VmbAPI::Examples::ApiController apiController;
 	std::cout << "Vimba Version V " << apiController.GetVersion() << "\n";
 	printConsoleInfo();
-	//Start the API
+	//Start the Vimba API
 	VmbErrorType vmb_err = VmbErrorSuccess;
 	vmb_err = apiController.StartUp();
 	
@@ -282,16 +287,17 @@ int main(){
 	// Measure frametime and average it
 	std::clock_t t;
 	t = 0;
+	//Time for a signal entire frame
 	double frameTime = 0.0;
+	//Time to reconstruct
 	double recon_time = 0.0;
+	double total_recon_time = 0.0;
 	int frameCounter = 0;
 	//Number of samples
-	int frameLimit = 5;
+	int frameLimit = 25;
 	//Accumulator
 	double totalFrameTime=0.0;
-
 	double averageFrametime = 0.0;
-	//std::string wtitle;
 	char wtitle[1024];
 
 	//ImGUI Setup
@@ -340,12 +346,12 @@ int main(){
 	bool showStyleEditor = false;
 
 	float rec_dist = parameters.rec_dist;
+	//These are the rescale and shift parameters to adjust the dynamic range of
+	float rescale_param[2] = { 1.0, 0.0 };
 
 	//ImVec4 clear_color = ImColor(114, 144, 154);
 	//Start the main loop
-	while(!glfwWindowShouldClose(window)){		
-		glfwPollEvents();
-		
+	while(!glfwWindowShouldClose(window)){			
 		//Fetch a frame
 		frame=apiController.GetFrame();
 		if(	!SP_ISNULL( frame) )
@@ -371,12 +377,11 @@ int main(){
 				checkCudaErrors(cudaGraphicsMapResources(1, &cuda_vbo_resource, 0));
 				checkCudaErrors(cudaGraphicsResourceGetMappedPointer(	(void **)&vbo_mapped_pointer, 
 																			&num_bytes, cuda_vbo_resource));
-
+				//This should be in an if-clause so that it only recalculates when it actually changed.
 				launch_constructChirp(d_chirp, rec_dist, parameters.lambda, parameters.pixel_x, parameters.pixel_y, M, N);
 				launch_checkerBoard(d_chirp, M, N);
-				//launch_
 
-				//Hologram Reconstruction
+				//Ordinary Hologram Reconstruction
 				if (cMode == cameraModeReconstruct){
 					//Multiply with (checkerboarded) chirp function
 					launch_matrixMulComplexPointw(d_chirp, d_recorded_hologram, d_propagated,M,N);
@@ -388,6 +393,7 @@ int main(){
 					//Write to openGL object	
 					if (dMode==displayModeMagnitude){
 						launch_cufftComplex2MagnitudeF(vbo_mapped_pointer, d_propagated,5.0/(sqrt((float)M*(float)N)), M, N);
+						launch_rescaleAndShiftF(vbo_mapped_pointer, rescale_param[0], rescale_param[1], M, N);
 					}
 					else if (dMode==displayModePhase){
 						launch_cufftComplex2PhaseF(vbo_mapped_pointer, d_propagated,0.5/PI, M, N);
@@ -418,6 +424,7 @@ int main(){
 						//Just write the image to the resource
 						launch_cufftComplex2MagnitudeF(vbo_mapped_pointer, d_recorded_hologram, 1.0, M, N);
 						checkCudaErrors(cudaGetLastError());	
+						launch_rescaleAndShiftF(vbo_mapped_pointer, rescale_param[0], rescale_param[1], M, N);
 				}
 				else if (cMode == cameraModeFFT){
 						//FFT shift
@@ -449,7 +456,8 @@ int main(){
 				}
 				//Measure the time to reconstruct a frame
 				recon_time= (double) (clock()-t)/CLOCKS_PER_SEC;
-
+				total_recon_time += recon_time;
+				
 
 				//If R was pressed, we store the last reconstructed frame.
 				if (storeCurrentFrame){
@@ -458,26 +466,26 @@ int main(){
 				}
 
 				checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_vbo_resource, 0));	
-				
-				
 
 				//Calculate the average frametime
 				totalFrameTime+=frameTime;
 				frameCounter++;
 				if (frameCounter==frameLimit){
 					frameCounter=0;
-					averageFrametime=totalFrameTime/frameLimit;
+					averageFrametime=totalFrameTime / (float)frameLimit;
 					totalFrameTime=0.0;
+					
 					sprintf(wtitle,"FPS: %.3f    Frametime: %.5fs    Reconstruction time: %.5fs",
-							(int)1/averageFrametime,averageFrametime, recon_time);	
-
+						(int)1 / averageFrametime, averageFrametime, total_recon_time / (float)frameLimit);
+					total_recon_time = 0.0;
 					glfwSetWindowTitle(window, wtitle);							
 				}								
 				
 			}
 		}
 
-		//Draw the interface
+		glfwPollEvents();
+		//Draw the interface, not to be confused with the image frame! This is ImGui's frame object!
 		ImGui_ImplGlfw_NewFrame();
 		if (show_mijn_scherm){
 			if (showHotkeys){
@@ -498,7 +506,7 @@ int main(){
 			if (ImGui::BeginMenuBar())
 			{
 				if (ImGui::BeginMenu("File"))
-				{
+				{	
 					//if (ImGui::MenuItem("Look for camera...", "F5")) {}
 					//if (ImGui::MenuItem("Save", "Ctrl+S")) {}
 					//if (ImGui::MenuItem("Save As..", "Ctrl+Shift+S")) {}
@@ -530,6 +538,7 @@ int main(){
 					};
 					ImGui::EndMenu();
 				}
+				//This was originally so the user can pick the colormap. Shouldn't be too hard to implement.
 				/*
 				if (ImGui::BeginMenu("Settings")){
 					if (ImGui::BeginMenu("Colormap")){
@@ -561,7 +570,10 @@ int main(){
 				}
 				ImGui::EndMenuBar();
 			}
-			ImGui::SliderFloat("Recontruction distance (m)", &rec_dist, -1.0, 1.0);
+			ImGui::TextWrapped("Recontruction distance(m)");
+			ImGui::SliderFloat("", &rec_dist, -1.0, 1.0);
+			ImGui::TextWrapped("Use these linear scaling factors (respectively a and b so that Y=aX+b) to adjust the brightness & contrast of the image. Ideally you want your dynamic range of interest to be mapped to the interval [0,1]");
+			ImGui::InputFloat2("", rescale_param);
 			ImGui::End();
 		}
 
@@ -571,6 +583,7 @@ int main(){
 		glDrawArrays(GL_POINTS, 0, (unsigned int)N*(unsigned int)M);
 		glBindVertexArray(0);
 
+		//Needed to draw the interface correctly (see ImGui documentation).
 		glUseProgram(0);
 		ImGui::Render();
 		glfwSwapBuffers(window);
@@ -581,21 +594,23 @@ int main(){
 		
 	}
 
-
+	//Stop acquiring images
 	apiController.StopContinuousImageAcquisition();
 
-	//Export the last reconstructed frame. 
+	//Export the stored frame
 	Complex* h_reconstructed=(Complex*) malloc(sizeof(Complex)*M*N);
-	checkCudaErrors(cudaMemcpy(h_reconstructed, d_propagated, sizeof(Complex)*M*N, cudaMemcpyDeviceToHost));
-
+	checkCudaErrors(cudaMemcpy(h_reconstructed, d_stored_frame, sizeof(Complex)*M*N, cudaMemcpyDeviceToHost));
 	export_complex_data("reconstructed_hologram.bin", h_reconstructed, M*N);
 	
-
 	//Cleanup
 	checkCudaErrors(cudaFree(d_recorded_hologram));
 	checkCudaErrors(cudaFree(d_recorded_hologram_uchar));
 	checkCudaErrors(cudaFree(d_chirp));
 	checkCudaErrors(cudaFree(d_propagated));
+	checkCudaErrors(cudaFree(d_stored_frame));
+	checkCudaErrors(cudaFree(d_filtered_phase));
+	checkCudaErrors(cudaFree(d_phase_cos));
+	checkCudaErrors(cudaFree(d_phase_sin));
 
 	free(vertices);
 	free(h_chirp);
