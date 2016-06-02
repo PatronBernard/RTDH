@@ -29,13 +29,24 @@ The camera has the following 4 modes:
 Note that upon exiting the application, the recorded reconstructed hologram will be exported to a binary file (reconstructed_hologram.bin). 
 
 <h4>Hotkeys</h4>
-Esc - Close application
-1 - Select video mode
-2 - Fresnell reconstruction
-3 - Holographic interferometry
-R - Record a frame for holographic interferometry
-V - View recorded frame
-4 - FFT
-M - Display magnitude (if applicable)
-P - Display phase (if applicable)
-C - Show/hide control dialog
+<b>Esc</b> - Close application
+
+<b>1</b> - Select video mode
+
+<b>2</b> - Fresnell reconstruction
+
+<b>3</b> - Holographic interferometry
+
+<b>R</b> - Record a frame for holographic interferometry
+
+<b>V</b> - View recorded frame
+
+<b>4</b> - FFT
+
+<b>M</b> - Display magnitude (if applicable)
+
+<b>P</b> - Display phase (if applicable)
+
+<b>C</b> - Show/hide control dialog
+
+For additional support you can contact me at jan.morez [AT] gmail [DOT] com.
