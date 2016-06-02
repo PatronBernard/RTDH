@@ -23,8 +23,8 @@ The camera has the following 4 modes:
 <li>Video mode: displays the raw image that the CCD registers. Useful for alignment or other optical experiments.</li>
 <li>Reconstruction mode: real-time Fresnel reconstruction. You can adjust the reconstruction distance with the slider. You can also display the phase, although it is meaningless here because there is no phase to compare it to.</li>
 <li>Holographic interferometry mode: displays the phase difference relative to a recorded phase (which is achieved by pressing R).</li>
-<li>Fourier Transform mode: plain Fourier transform of the CCD image. In conjuction with a lens you can draw periodic patterns, film them and see the 2D power spectrum.</li>
-<li>View recorde frame mode: speaks for itself.</li>
+<li>Fourier Transform mode: plain Fourier transform of the CCD image. In conjuction with a lens you could draw periodic patterns on a paper, film it and see the 2D power spectrum.</li>
+<li>View recorded frame mode: speaks for itself.</li>
 </ul>
 Note that upon exiting the application, the recorded reconstructed hologram will be exported to a binary file (reconstructed_hologram.bin). 
 
